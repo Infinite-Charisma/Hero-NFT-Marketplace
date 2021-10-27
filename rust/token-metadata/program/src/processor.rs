@@ -181,38 +181,38 @@ pub fn process_update_metadata_accounts(
     let mut metadata = Metadata::from_account_info(metadata_account_info)?;
     msg!("----> Successfully got metadata: Name=>{} URL=>{}", metadata.data.name, metadata.data.uri);
 
-    assert_owned_by(metadata_account_info, program_id)?;
-    assert_update_authority_is_correct(&metadata, update_authority_info)?;
+    // assert_owned_by(metadata_account_info, program_id)?;
+    // assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
     if let Some(data) = optional_data {
         if metadata.is_mutable {
-            assert_data_valid(
-                &data,
-                update_authority_info.key,
-                &metadata,
-                false,
-                update_authority_info.is_signer,
-            )?;
+            // assert_data_valid(
+            //     &data,
+            //     update_authority_info.key,
+            //     &metadata,
+            //     false,
+            //     update_authority_info.is_signer,
+            // )?;
             metadata.data = data;
         } else {
             return Err(MetadataError::DataIsImmutable.into());
         }
     }
 
-    if let Some(val) = update_authority {
-        metadata.update_authority = val;
-    }
+    // if let Some(val) = update_authority {
+    //     metadata.update_authority = val;
+    // }
 
-    if let Some(val) = primary_sale_happened {
-        if val {
-            metadata.primary_sale_happened = val
-        } else {
-            return Err(MetadataError::PrimarySaleCanOnlyBeFlippedToTrue.into());
-        }
-    }
+    // if let Some(val) = primary_sale_happened {
+    //     if val {
+    //         metadata.primary_sale_happened = val
+    //     } else {
+    //         return Err(MetadataError::PrimarySaleCanOnlyBeFlippedToTrue.into());
+    //     }
+    // }
 
     puff_out_data_fields(&mut metadata);
-
+    msg!("----> Try to save");
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
     Ok(())
 }
