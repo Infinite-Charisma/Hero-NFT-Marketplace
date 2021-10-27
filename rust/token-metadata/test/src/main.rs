@@ -35,6 +35,7 @@ use {
 };
 
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     let metadata_accounts = client
         .get_program_accounts(&metaplex_token_metadata::id())
@@ -479,9 +480,12 @@ fn update_metadata_account_call(
     )
     .unwrap();
     let program_key = metaplex_token_metadata::id();
+    println!("--> {}", program_key);
+    
+    let metadata_program_key = Pubkey::from_str(TOKEN_METADATA_PROGRAM_PUBKEY).unwrap();
     let mint_key = pubkey_of(app_matches, "mint").unwrap();
-    let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(), mint_key.as_ref()];
-    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
+    let metadata_seeds = &[PREFIX.as_bytes(), &metadata_program_key.as_ref(), mint_key.as_ref()];
+    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &metadata_program_key);
 
     let uri = match app_matches.value_of("uri") {
         Some(val) => Some(val.to_owned()),

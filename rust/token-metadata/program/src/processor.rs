@@ -52,15 +52,13 @@ pub fn process_instruction<'a>(
         MetadataInstruction::UpdateMetadataAccount(args) => {
             msg!("Instruction: Update Metadata Accounts");
             msg!("program_id--> {}", program_id);
-            msg!("accounts--> {}", accounts.len());
-            Ok(())
-            // process_update_metadata_accounts(
-            //     program_id,
-            //     accounts,
-            //     args.data,
-            //     args.update_authority,
-            //     args.primary_sale_happened,
-            // )
+            process_update_metadata_accounts(
+                program_id,
+                accounts,
+                args.data,
+                args.update_authority,
+                args.primary_sale_happened,
+            )
         }
         // MetadataInstruction::DeprecatedCreateMasterEdition(args) => {
         //     msg!("Instruction: Deprecated Create Master Edition");
@@ -181,6 +179,7 @@ pub fn process_update_metadata_accounts(
     let metadata_account_info = next_account_info(account_info_iter)?;
     let update_authority_info = next_account_info(account_info_iter)?;
     let mut metadata = Metadata::from_account_info(metadata_account_info)?;
+    msg!("----> Successfully got metadata: Name=>{} URL=>{}", metadata.data.name, metadata.data.uri);
 
     assert_owned_by(metadata_account_info, program_id)?;
     assert_update_authority_is_correct(&metadata, update_authority_info)?;
