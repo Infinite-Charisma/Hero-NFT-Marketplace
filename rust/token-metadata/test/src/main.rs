@@ -573,6 +573,7 @@ fn create_metadata_account_call(
     let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
     println!("---> Generated hero Id: {}", metadata_key);
+    println!("---> Compare: {}, Compare_content: {}", owner_key == metadata_key, &owner_key == &metadata_key);
 
     // let mut new_mint_instructions = vec![
         // create_account(
