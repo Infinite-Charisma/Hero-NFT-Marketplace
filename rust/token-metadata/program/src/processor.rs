@@ -44,7 +44,6 @@ pub fn process_instruction<'a>(
     match instruction {
         MetadataInstruction::CreateMetadataAccount(args) => {
             msg!("Instruction: Create Metadata Accounts");
-            msg!("--> Program_id: {}, Hero_id: {}", program_id, args.id);
             process_create_metadata_accounts(
                 program_id,
                 accounts,
@@ -93,7 +92,6 @@ pub fn process_create_metadata_accounts<'a>(
     // let update_authority_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-    msg!("--> Received accounts: hero-{}, payer-{}", metadata_account_info.key, payer_account_info.key);
 
     process_create_metadata_accounts_logic(
         &program_id,

@@ -821,7 +821,6 @@ pub fn process_create_metadata_accounts_logic(
     ];
     let (metadata_key, metadata_bump_seed) =
         Pubkey::find_program_address(metadata_seeds, program_id);
-    msg!("--> Calculated metadata_key: {}", metadata_key);
     let metadata_authority_signer_seeds = &[
         PREFIX.as_bytes(),
         program_id.as_ref(),
@@ -829,11 +828,12 @@ pub fn process_create_metadata_accounts_logic(
         &[id],
         &[metadata_bump_seed],
     ];
+    msg!("--> Received metadata_key: {}\n Calculated metadata_key: {}\n Compare: {}", metadata_account_info.key, metadata_key, metadata_key ==  *metadata_account_info.key);
 
-    if metadata_account_info.key != &metadata_key {
+    if *metadata_account_info.key != metadata_key {
         return Err(MetadataError::InvalidMetadataKey.into());
     }
-
+    msg!("--> Passed");
     create_or_allocate_account_raw(
         *program_id,
         metadata_account_info,
@@ -852,7 +852,7 @@ pub fn process_create_metadata_accounts_logic(
         // allow_direct_creator_writes,
         // update_authority_info.is_signer,
     )?;
-
+    msg!("--> validated");
     // metadata.mint = *mint_info.key;
     // metadata.key = Key::MetadataV1;
     // metadata.data = data;
