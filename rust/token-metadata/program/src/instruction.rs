@@ -1,7 +1,8 @@
 use {
     crate::{
         // deprecated_instruction::{MintPrintingTokensViaTokenArgs, SetReservationListArgs},
-        state::{Creator, Data,
+        state::{ HeroData,
+            // Creator, 
             // EDITION, EDITION_MARKER_BIT_SIZE, PREFIX
         },
     },
@@ -13,26 +14,27 @@ use {
     },
 };
 
-#[repr(C)]
-#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
-/// Args for update call
-pub struct UpdateMetadataAccountArgs {
-    pub data: Option<Data>,
-    pub update_authority: Option<Pubkey>,
-    pub primary_sale_happened: Option<bool>,
-}
+// #[repr(C)]
+// #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+// /// Args for update call
+// pub struct UpdateMetadataAccountArgs {
+//     pub data: Option<Data>,
+//     pub update_authority: Option<Pubkey>,
+//     pub primary_sale_happened: Option<bool>,
+// }
 
 #[repr(C)]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
 /// Args for create call
 pub struct CreateMetadataAccountArgs {
     /// Note that unique metadatas are disabled for now.
-    pub data: Data,
+    pub data: HeroData,
     /// Whether you want your metadata to be updateable in the future.
-    pub is_mutable: bool,
+    // pub is_mutable: bool,
+    pub id: u8,
 }
 
-#[repr(C)]
+// #[repr(C)]
 // #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
 // pub struct CreateMasterEditionArgs {
 //     /// If set, means that no more than this number of editions can ever be minted. This is immutable.
@@ -57,11 +59,11 @@ pub enum MetadataInstruction {
     ///   5. `[]` System program
     ///   6. `[]` Rent info
     CreateMetadataAccount(CreateMetadataAccountArgs),
-
+/*
     /// Update a Metadata
     ///   0. `[writable]` Metadata account
     ///   1. `[signer]` Update authority key
-    UpdateMetadataAccount(UpdateMetadataAccountArgs),
+    // UpdateMetadataAccount(UpdateMetadataAccountArgs),
 
     /// Register a Metadata as a Master Edition V1, which means Editions can be minted.
     /// Henceforth, no further tokens will be mintable from this primary mint. Will throw an error if more than one
@@ -149,7 +151,7 @@ pub enum MetadataInstruction {
     /// Sign a piece of metadata that has you as an unverified creator so that it is now verified.
     ///   0. `[writable]` Metadata (pda of ['metadata', program id, mint id])
     ///   1. `[signer]` Creator
-    SignMetadata,
+    // SignMetadata,
 
     /// Using a one time authorization token from a master edition v1, print any number of printing tokens from the printing_mint
     /// one time, burning the one time authorization token.
@@ -243,7 +245,7 @@ pub enum MetadataInstruction {
     /// Puff a Metadata - make all of it's variable length fields (name/uri/symbol) a fixed length using a null character
     /// so that it can be found using offset searches by the RPC to make client lookups cheaper.
     ///   0. `[writable]` Metadata account
-    PuffMetadata,
+    // PuffMetadata,*/
 }
 
 /// Creates an CreateMetadataAccounts instruction
@@ -251,79 +253,85 @@ pub enum MetadataInstruction {
 pub fn create_metadata_accounts(
     program_id: Pubkey,
     metadata_account: Pubkey,
-    mint: Pubkey,
+    // mint: Pubkey,
     mint_authority: Pubkey,
     payer: Pubkey,
-    update_authority: Pubkey,
+    // update_authority: Pubkey,
+    id: u8,
     name: String,
-    symbol: String,
+    // symbol: String,
     uri: String,
-    creators: Option<Vec<Creator>>,
-    seller_fee_basis_points: u16,
-    update_authority_is_signer: bool,
-    is_mutable: bool,
+    last_price: u16,
+    listed_price: u16,
+    owner_nft_address: Pubkey,
+    // creators: Option<Vec<Creator>>,
+    // seller_fee_basis_points: u16,
+    // update_authority_is_signer: bool,
+    // is_mutable: bool,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(metadata_account, false),
-            AccountMeta::new_readonly(mint, false),
+            // AccountMeta::new_readonly(mint, false),
             AccountMeta::new_readonly(mint_authority, true),
             AccountMeta::new(payer, true),
-            AccountMeta::new_readonly(update_authority, update_authority_is_signer),
+            AccountMeta::new(owner_nft_address, false),
+            // AccountMeta::new_readonly(update_authority, update_authority_is_signer),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
         data: MetadataInstruction::CreateMetadataAccount(CreateMetadataAccountArgs {
-            data: Data {
+            data: HeroData {
+                id,
                 name,
-                symbol,
                 uri,
-                seller_fee_basis_points,
-                creators,
+                last_price,
+                listed_price,
+                owner_nft_address,
             },
-            is_mutable,
+            id,
         })
         .try_to_vec()
         .unwrap(),
     }
 }
 
-/// update metadata account instruction
-pub fn update_metadata_accounts(
-    program_id: Pubkey,
-    metadata_account: Pubkey,
-    update_authority: Pubkey,
-    new_update_authority: Option<Pubkey>,
-    data: Option<Data>,
-    primary_sale_happened: Option<bool>,
-) -> Instruction {
-    Instruction {
-        program_id,
-        accounts: vec![
-            AccountMeta::new(metadata_account, false),
-            AccountMeta::new_readonly(update_authority, true),
-        ],
-        data: MetadataInstruction::UpdateMetadataAccount(UpdateMetadataAccountArgs {
-            data,
-            update_authority: new_update_authority,
-            primary_sale_happened,
-        })
-        .try_to_vec()
-        .unwrap(),
-    }
-}
+// /// update metadata account instruction
+// pub fn update_metadata_accounts(
+//     program_id: Pubkey,
+//     metadata_account: Pubkey,
+//     update_authority: Pubkey,
+//     new_update_authority: Option<Pubkey>,
+//     data: Option<Data>,
+//     primary_sale_happened: Option<bool>,
+// ) -> Instruction {
+//     Instruction {
+//         program_id,
+//         accounts: vec![
+//             AccountMeta::new(metadata_account, false),
+//             AccountMeta::new_readonly(update_authority, true),
+//         ],
+//         data: MetadataInstruction::UpdateMetadataAccount(UpdateMetadataAccountArgs {
+//             data,
+//             update_authority: new_update_authority,
+//             primary_sale_happened,
+//         })
+//         .try_to_vec()
+//         .unwrap(),
+//     }
+// }
 
-/// puff metadata account instruction
-pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> Instruction {
-    Instruction {
-        program_id,
-        accounts: vec![AccountMeta::new(metadata_account, false)],
-        data: MetadataInstruction::PuffMetadata.try_to_vec().unwrap(),
-    }
-}
+// /// puff metadata account instruction
+// pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> Instruction {
+//     Instruction {
+//         program_id,
+//         accounts: vec![AccountMeta::new(metadata_account, false)],
+//         data: MetadataInstruction::PuffMetadata.try_to_vec().unwrap(),
+//     }
+// }
 
-/// creates a update_primary_sale_happened_via_token instruction
+// /// creates a update_primary_sale_happened_via_token instruction
 // #[allow(clippy::too_many_arguments)]
 // pub fn update_primary_sale_happened_via_token(
 //     program_id: Pubkey,
@@ -344,7 +352,7 @@ pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> In
 //     }
 // }
 
-/// creates a create_master_edition instruction
+// /// creates a create_master_edition instruction
 // #[allow(clippy::too_many_arguments)]
 // pub fn create_master_edition(
 //     program_id: Pubkey,
@@ -377,7 +385,7 @@ pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> In
 //     }
 // }
 
-/// creates a mint_new_edition_from_master_edition instruction
+// /// creates a mint_new_edition_from_master_edition instruction
 // #[allow(clippy::too_many_arguments)]
 // pub fn mint_new_edition_from_master_edition_via_token(
 //     program_id: Pubkey,
@@ -435,20 +443,20 @@ pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> In
 //     }
 // }
 
-/// Sign Metadata
-#[allow(clippy::too_many_arguments)]
-pub fn sign_metadata(program_id: Pubkey, metadata: Pubkey, creator: Pubkey) -> Instruction {
-    Instruction {
-        program_id,
-        accounts: vec![
-            AccountMeta::new(metadata, false),
-            AccountMeta::new_readonly(creator, true),
-        ],
-        data: MetadataInstruction::SignMetadata.try_to_vec().unwrap(),
-    }
-}
+// /// Sign Metadata
+// #[allow(clippy::too_many_arguments)]
+// pub fn sign_metadata(program_id: Pubkey, metadata: Pubkey, creator: Pubkey) -> Instruction {
+//     Instruction {
+//         program_id,
+//         accounts: vec![
+//             AccountMeta::new(metadata, false),
+//             AccountMeta::new_readonly(creator, true),
+//         ],
+//         data: MetadataInstruction::SignMetadata.try_to_vec().unwrap(),
+//     }
+// }
 
-// / Converts a master edition v1 to v2
+// /// Converts a master edition v1 to v2
 // #[allow(clippy::too_many_arguments)]
 // pub fn convert_master_edition_v1_to_v2(
 //     program_id: Pubkey,
@@ -469,7 +477,7 @@ pub fn sign_metadata(program_id: Pubkey, metadata: Pubkey, creator: Pubkey) -> I
 //     }
 // }
 
-// / creates a mint_edition_proxy instruction
+// /// creates a mint_edition_proxy instruction
 // #[allow(clippy::too_many_arguments)]
 // pub fn mint_edition_from_master_edition_via_vault_proxy(
 //     program_id: Pubkey,

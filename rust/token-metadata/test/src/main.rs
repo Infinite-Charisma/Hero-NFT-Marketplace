@@ -5,12 +5,14 @@ use {
     metaplex_token_metadata::{
         instruction::{
             // create_master_edition, mint_new_edition_from_master_edition_via_token,
-            create_metadata_accounts, puff_metadata_account,
-            update_metadata_accounts,
+            create_metadata_accounts,
+            // puff_metadata_account,
+            // update_metadata_accounts,
         },
         state::{
-            get_reservation_list, Data, Edition, Key, MasterEditionV1, MasterEditionV2, Metadata,
-            EDITION, MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, PREFIX,
+            // get_reservation_list, EDITION, Edition, Key, MasterEditionV1, MasterEditionV2, Metadata,
+            HeroData, PREFIX,
+            // MAX_SYMBOL_LENGTH, MAX_NAME_LENGTH, MAX_URI_LENGTH,
         },
     },
     solana_clap_utils::{
@@ -36,192 +38,192 @@ use {
 
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
-fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
-    let metadata_accounts = client
-        .get_program_accounts(&metaplex_token_metadata::id())
-        .unwrap();
-    let mut needing_puffing = vec![];
-    for acct in metadata_accounts {
-        if acct.1.data[0] == Key::MetadataV1 as u8 {
-            match try_from_slice_unchecked(&acct.1.data) {
-                Ok(val) => {
-                    let account: Metadata = val;
-                    if account.data.name.len() < MAX_NAME_LENGTH
-                        || account.data.uri.len() < MAX_URI_LENGTH
-                        || account.data.symbol.len() < MAX_SYMBOL_LENGTH
-                        || account.edition_nonce.is_none()
-                    {
-                        needing_puffing.push(acct.0);
-                    }
-                }
-                Err(_) => {
-                    println!("Skipping {}", acct.0)
-                }
-            };
-        }
-    }
-    println!("Found {} accounts needing puffing", needing_puffing.len());
+// fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
+//     let metadata_accounts = client
+//         .get_program_accounts(&metaplex_token_metadata::id())
+//         .unwrap();
+//     let mut needing_puffing = vec![];
+//     for acct in metadata_accounts {
+//         if acct.1.data[0] == Key::MetadataV1 as u8 {
+//             match try_from_slice_unchecked(&acct.1.data) {
+//                 Ok(val) => {
+//                     let account: Metadata = val;
+//                     if account.data.name.len() < MAX_NAME_LENGTH
+//                         || account.data.uri.len() < MAX_URI_LENGTH
+//                         || account.data.symbol.len() < MAX_SYMBOL_LENGTH
+//                         || account.edition_nonce.is_none()
+//                     {
+//                         needing_puffing.push(acct.0);
+//                     }
+//                 }
+//                 Err(_) => {
+//                     println!("Skipping {}", acct.0)
+//                 }
+//             };
+//         }
+//     }
+//     println!("Found {} accounts needing puffing", needing_puffing.len());
 
-    let mut instructions = vec![];
-    let mut i = 0;
-    while i < needing_puffing.len() {
-        let pubkey = needing_puffing[i];
-        instructions.push(puff_metadata_account(metaplex_token_metadata::id(), pubkey));
-        if instructions.len() >= 20 {
-            let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-            let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+//     let mut instructions = vec![];
+//     let mut i = 0;
+//     while i < needing_puffing.len() {
+//         let pubkey = needing_puffing[i];
+//         instructions.push(puff_metadata_account(metaplex_token_metadata::id(), pubkey));
+//         if instructions.len() >= 20 {
+//             let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+//             let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
-            transaction.sign(&[&payer], recent_blockhash);
-            match client.send_and_confirm_transaction(&transaction) {
-                Ok(_) => {
-                    println!("Another 20 down. At {} / {}", i, needing_puffing.len());
-                    instructions = vec![];
-                    i += 1;
-                }
-                Err(_) => {
-                    println!("Txn failed. Retry.");
-                    std::thread::sleep(std::time::Duration::from_millis(1000));
-                }
-            }
-        } else {
-            i += 1;
-        }
-    }
+//             transaction.sign(&[&payer], recent_blockhash);
+//             match client.send_and_confirm_transaction(&transaction) {
+//                 Ok(_) => {
+//                     println!("Another 20 down. At {} / {}", i, needing_puffing.len());
+//                     instructions = vec![];
+//                     i += 1;
+//                 }
+//                 Err(_) => {
+//                     println!("Txn failed. Retry.");
+//                     std::thread::sleep(std::time::Duration::from_millis(1000));
+//                 }
+//             }
+//         } else {
+//             i += 1;
+//         }
+//     }
 
-    if instructions.len() > 0 {
-        let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-        let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-        transaction.sign(&[&payer], recent_blockhash);
-        client.send_and_confirm_transaction(&transaction).unwrap();
-    }
-}
+//     if instructions.len() > 0 {
+//         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+//         let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+//         transaction.sign(&[&payer], recent_blockhash);
+//         client.send_and_confirm_transaction(&transaction).unwrap();
+//     }
+// }
 
-fn mint_coins(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
-    let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
-    let amount = match app_matches.value_of("amount") {
-        Some(val) => Some(val.parse::<u64>().unwrap()),
-        None => None,
-    }
-    .unwrap();
-    let mint_key = pubkey_of(app_matches, "mint").unwrap();
-    let mut instructions = vec![];
+// fn mint_coins(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
+//     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
+//     let amount = match app_matches.value_of("amount") {
+//         Some(val) => Some(val.parse::<u64>().unwrap()),
+//         None => None,
+//     }
+//     .unwrap();
+//     let mint_key = pubkey_of(app_matches, "mint").unwrap();
+//     let mut instructions = vec![];
 
-    let mut signers = vec![&payer];
-    let destination_key: Pubkey;
-    let destination = Keypair::new();
-    if app_matches.is_present("destination") {
-        destination_key = pubkey_of(app_matches, "destination").unwrap();
-    } else {
-        destination_key = destination.pubkey();
-        signers.push(&destination);
-        instructions.push(create_account(
-            &payer.pubkey(),
-            &destination_key,
-            client
-                .get_minimum_balance_for_rent_exemption(Account::LEN)
-                .unwrap(),
-            Account::LEN as u64,
-            &token_key,
-        ));
-        instructions.push(
-            initialize_account(&token_key, &destination_key, &mint_key, &payer.pubkey()).unwrap(),
-        );
-    }
-    instructions.push(
-        mint_to(
-            &token_key,
-            &mint_key,
-            &destination_key,
-            &payer.pubkey(),
-            &[&payer.pubkey()],
-            amount,
-        )
-        .unwrap(),
-    );
-    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+//     let mut signers = vec![&payer];
+//     let destination_key: Pubkey;
+//     let destination = Keypair::new();
+//     if app_matches.is_present("destination") {
+//         destination_key = pubkey_of(app_matches, "destination").unwrap();
+//     } else {
+//         destination_key = destination.pubkey();
+//         signers.push(&destination);
+//         instructions.push(create_account(
+//             &payer.pubkey(),
+//             &destination_key,
+//             client
+//                 .get_minimum_balance_for_rent_exemption(Account::LEN)
+//                 .unwrap(),
+//             Account::LEN as u64,
+//             &token_key,
+//         ));
+//         instructions.push(
+//             initialize_account(&token_key, &destination_key, &mint_key, &payer.pubkey()).unwrap(),
+//         );
+//     }
+//     instructions.push(
+//         mint_to(
+//             &token_key,
+//             &mint_key,
+//             &destination_key,
+//             &payer.pubkey(),
+//             &[&payer.pubkey()],
+//             amount,
+//         )
+//         .unwrap(),
+//     );
+//     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+//     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
-    transaction.sign(&signers, recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
+//     transaction.sign(&signers, recent_blockhash);
+//     client.send_and_confirm_transaction(&transaction).unwrap();
 
-    println!("Minted {:?} tokens to {:?}.", amount, destination_key);
-}
-fn show_reservation_list(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
-    let key = pubkey_of(app_matches, "key").unwrap();
-    let mut res_data = client.get_account(&key).unwrap();
-    let mut lamports = 0;
-    let account_info = AccountInfo::new(
-        &key,
-        false,
-        false,
-        &mut lamports,
-        &mut res_data.data,
-        &res_data.owner,
-        false,
-        0,
-    );
+//     println!("Minted {:?} tokens to {:?}.", amount, destination_key);
+// }
+// fn show_reservation_list(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
+//     let key = pubkey_of(app_matches, "key").unwrap();
+//     let mut res_data = client.get_account(&key).unwrap();
+//     let mut lamports = 0;
+//     let account_info = AccountInfo::new(
+//         &key,
+//         false,
+//         false,
+//         &mut lamports,
+//         &mut res_data.data,
+//         &res_data.owner,
+//         false,
+//         0,
+//     );
 
-    let res_list = get_reservation_list(&account_info).unwrap();
-    println!("Res list {:?}", res_list.reservations());
-    println!(
-        "current res spots: {:?}",
-        res_list.current_reservation_spots()
-    );
-    println!("total res spots: {:?}", res_list.total_reservation_spots());
-    println!("supply snapshot: {:?}", res_list.supply_snapshot());
-}
+//     let res_list = get_reservation_list(&account_info).unwrap();
+//     println!("Res list {:?}", res_list.reservations());
+//     println!(
+//         "current res spots: {:?}",
+//         res_list.current_reservation_spots()
+//     );
+//     println!("total res spots: {:?}", res_list.total_reservation_spots());
+//     println!("supply snapshot: {:?}", res_list.supply_snapshot());
+// }
 
-fn show(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
-    let program_key = metaplex_token_metadata::id();
+// fn show(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
+//     let program_key = metaplex_token_metadata::id();
 
-    let printing_mint_key = pubkey_of(app_matches, "mint").unwrap();
-    let master_metadata_seeds = &[
-        PREFIX.as_bytes(),
-        &program_key.as_ref(),
-        printing_mint_key.as_ref(),
-    ];
-    let (master_metadata_key, _) =
-        Pubkey::find_program_address(master_metadata_seeds, &program_key);
+//     let printing_mint_key = pubkey_of(app_matches, "mint").unwrap();
+//     let master_metadata_seeds = &[
+//         PREFIX.as_bytes(),
+//         &program_key.as_ref(),
+//         printing_mint_key.as_ref(),
+//     ];
+//     let (master_metadata_key, _) =
+//         Pubkey::find_program_address(master_metadata_seeds, &program_key);
 
-    let master_metadata_account = client.get_account(&master_metadata_key).unwrap();
-    let master_metadata: Metadata =
-        try_from_slice_unchecked(&master_metadata_account.data).unwrap();
+//     let master_metadata_account = client.get_account(&master_metadata_key).unwrap();
+//     let master_metadata: Metadata =
+//         try_from_slice_unchecked(&master_metadata_account.data).unwrap();
 
-    let update_authority = master_metadata.update_authority;
+//     let update_authority = master_metadata.update_authority;
 
-    let master_edition_seeds = &[
-        PREFIX.as_bytes(),
-        &program_key.as_ref(),
-        &master_metadata.mint.as_ref(),
-        EDITION.as_bytes(),
-    ];
-    let (master_edition_key, _) = Pubkey::find_program_address(master_edition_seeds, &program_key);
-    let master_edition_account_res = client.get_account(&master_edition_key);
+//     let master_edition_seeds = &[
+//         PREFIX.as_bytes(),
+//         &program_key.as_ref(),
+//         &master_metadata.mint.as_ref(),
+//         EDITION.as_bytes(),
+//     ];
+//     let (master_edition_key, _) = Pubkey::find_program_address(master_edition_seeds, &program_key);
+//     let master_edition_account_res = client.get_account(&master_edition_key);
 
-    println!("Metadata key: {:?}", master_metadata_key);
-    println!("Metadata: {:#?}", master_metadata);
-    println!("Update authority: {:?}", update_authority);
-    match master_edition_account_res {
-        Ok(master_edition_account) => {
-            if master_edition_account.data[0] == Key::MasterEditionV1 as u8 {
-                let master_edition: MasterEditionV1 =
-                    try_from_slice_unchecked(&master_edition_account.data).unwrap();
-                println!("Deprecated Master edition {:#?}", master_edition);
-            } else if master_edition_account.data[0] == Key::MasterEditionV2 as u8 {
-                let master_edition: MasterEditionV2 =
-                    try_from_slice_unchecked(&master_edition_account.data).unwrap();
-                println!("Master edition {:#?}", master_edition);
-            } else {
-                let edition: Edition =
-                    try_from_slice_unchecked(&master_edition_account.data).unwrap();
-                println!("Limited edition {:#?}", edition);
-            }
-        }
-        Err(_) => {
-            println!("No master edition or edition detected")
-        }
-    }
-}
+//     println!("Metadata key: {:?}", master_metadata_key);
+//     println!("Metadata: {:#?}", master_metadata);
+//     println!("Update authority: {:?}", update_authority);
+//     match master_edition_account_res {
+//         Ok(master_edition_account) => {
+//             if master_edition_account.data[0] == Key::MasterEditionV1 as u8 {
+//                 let master_edition: MasterEditionV1 =
+//                     try_from_slice_unchecked(&master_edition_account.data).unwrap();
+//                 println!("Deprecated Master edition {:#?}", master_edition);
+//             } else if master_edition_account.data[0] == Key::MasterEditionV2 as u8 {
+//                 let master_edition: MasterEditionV2 =
+//                     try_from_slice_unchecked(&master_edition_account.data).unwrap();
+//                 println!("Master edition {:#?}", master_edition);
+//             } else {
+//                 let edition: Edition =
+//                     try_from_slice_unchecked(&master_edition_account.data).unwrap();
+//                 println!("Limited edition {:#?}", edition);
+//             }
+//         }
+//         Err(_) => {
+//             println!("No master edition or edition detected")
+//         }
+//     }
+// }
 
 // fn mint_edition_via_token_call(
 //     app_matches: &ArgMatches,
@@ -468,152 +470,176 @@ fn show(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
 //     (master_edition, master_edition_key)
 // }
 
-fn update_metadata_account_call(
-    app_matches: &ArgMatches,
-    payer: Keypair,
-    client: RpcClient,
-) -> (Metadata, Pubkey) {
-    let update_authority = read_keypair_file(
-        app_matches
-            .value_of("update_authority")
-            .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
-    )
-    .unwrap();
-    let program_key = metaplex_token_metadata::id();
-    println!("--> {}", program_key);
+// fn update_metadata_account_call(
+//     app_matches: &ArgMatches,
+//     payer: Keypair,
+//     client: RpcClient,
+// ) -> (Metadata, Pubkey) {
+//     let update_authority = read_keypair_file(
+//         app_matches
+//             .value_of("update_authority")
+//             .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
+//     )
+//     .unwrap();
+//     let program_key = metaplex_token_metadata::id();
+//     println!("--> {}", program_key);
     
-    let metadata_program_key = Pubkey::from_str(TOKEN_METADATA_PROGRAM_PUBKEY).unwrap();
-    let mint_key = pubkey_of(app_matches, "mint").unwrap();
-    let metadata_seeds = &[PREFIX.as_bytes(), &metadata_program_key.as_ref(), mint_key.as_ref()];
-    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &metadata_program_key);
+//     let metadata_program_key = Pubkey::from_str(TOKEN_METADATA_PROGRAM_PUBKEY).unwrap();
+//     let mint_key = pubkey_of(app_matches, "mint").unwrap();
+//     let metadata_seeds = &[PREFIX.as_bytes(), &metadata_program_key.as_ref(), mint_key.as_ref()];
+//     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &metadata_program_key);
 
-    let uri = match app_matches.value_of("uri") {
-        Some(val) => Some(val.to_owned()),
-        None => None,
-    };
+//     let uri = match app_matches.value_of("uri") {
+//         Some(val) => Some(val.to_owned()),
+//         None => None,
+//     };
 
-    let name = match app_matches.value_of("name") {
-        Some(val) => Some(val.to_owned()),
-        None => None,
-    };
+//     let name = match app_matches.value_of("name") {
+//         Some(val) => Some(val.to_owned()),
+//         None => None,
+//     };
 
-    let new_update_authority = pubkey_of(app_matches, "new_update_authority");
+//     let new_update_authority = pubkey_of(app_matches, "new_update_authority");
 
-    let metadata_account = client.get_account(&metadata_key).unwrap();
-    let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+//     let metadata_account = client.get_account(&metadata_key).unwrap();
+//     let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
 
-    let new_data = Data {
-        name: name.unwrap_or(metadata.data.name),
-        symbol: metadata.data.symbol,
-        uri: uri.unwrap_or(metadata.data.uri),
-        seller_fee_basis_points: 0,
-        creators: metadata.data.creators,
-    };
+//     let new_data = Data {
+//         name: name.unwrap_or(metadata.data.name),
+//         symbol: metadata.data.symbol,
+//         uri: uri.unwrap_or(metadata.data.uri),
+//         seller_fee_basis_points: 0,
+//         creators: metadata.data.creators,
+//     };
 
-    let instructions = [update_metadata_accounts(
-        program_key,
-        metadata_key,
-        update_authority.pubkey(),
-        new_update_authority,
-        Some(new_data),
-        None,
-    )];
+//     let instructions = [update_metadata_accounts(
+//         program_key,
+//         metadata_key,
+//         update_authority.pubkey(),
+//         new_update_authority,
+//         Some(new_data),
+//         None,
+//     )];
 
-    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-    let signers = vec![&update_authority];
+//     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+//     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+//     let signers = vec![&update_authority];
 
-    transaction.sign(&signers, recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
-    let metadata_account = client.get_account(&metadata_key).unwrap();
-    let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
-    (metadata, metadata_key)
-}
+//     transaction.sign(&signers, recent_blockhash);
+//     client.send_and_confirm_transaction(&transaction).unwrap();
+//     let metadata_account = client.get_account(&metadata_key).unwrap();
+//     let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+//     (metadata, metadata_key)
+// }
 
 fn create_metadata_account_call(
     app_matches: &ArgMatches,
     payer: Keypair,
     client: RpcClient,
-) -> (Metadata, Pubkey) {
-    let update_authority = read_keypair_file(
-        app_matches
-            .value_of("update_authority")
-            .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
-    )
-    .unwrap();
+) -> (HeroData, Pubkey) {
+    // let update_authority = read_keypair_file(
+    //     app_matches
+    //         .value_of("update_authority")
+    //         .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
+    // )
+    // .unwrap();
 
     let program_key = metaplex_token_metadata::id();
+    println!("--->Program_id: {}\n", program_key);
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
+    println!("--->Token_program_id: {}\n", token_key);
+    // let id = match app_matches.value_of("id") {
+    //     Some(val) => Some(val.parse::<u8>().unwrap()),
+    //     None => None,
+    // }.unwrap();
+    let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
+    let last_price = app_matches.value_of("last_price").unwrap().parse::<u16>().unwrap();
+    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
     let name = app_matches.value_of("name").unwrap().to_owned();
-    let symbol = app_matches.value_of("symbol").unwrap().to_owned();
+    // let symbol = app_matches.value_of("symbol").unwrap().to_owned();
     let uri = app_matches.value_of("uri").unwrap().to_owned();
-    let create_new_mint = !app_matches.is_present("mint");
-    let mutable = app_matches.is_present("mutable");
-    let new_mint = Keypair::new();
-    let mint_key = match app_matches.value_of("mint") {
-        Some(_val) => pubkey_of(app_matches, "mint").unwrap(),
-        None => new_mint.pubkey(),
-    };
-    let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(), mint_key.as_ref()];
-    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
+    // let create_new_mint = !app_matches.is_present("mint");
+    // let mutable = app_matches.is_present("mutable");
+    // let new_mint = Keypair::new();
+    // let mint_key = match app_matches.value_of("mint") {
+    //     Some(_val) => pubkey_of(app_matches, "mint").unwrap(),
+    //     None => new_mint.pubkey(),
+    // };
+    let owner_key = pubkey_of(app_matches, "owner").unwrap();
+    println!("--->\n Id: {},\n Name: {},\n Uri: {},\n Last_price: {},\n Listed_price: {},\n Owner: {}\n",
+        id, name, uri, last_price, listed_price, owner_key
+    );
 
-    let mut new_mint_instructions = vec![
-        create_account(
-            &payer.pubkey(),
-            &mint_key,
-            client
-                .get_minimum_balance_for_rent_exemption(Mint::LEN)
-                .unwrap(),
-            Mint::LEN as u64,
-            &token_key,
-        ),
-        initialize_mint(
-            &token_key,
-            &mint_key,
-            &payer.pubkey(),
-            Some(&payer.pubkey()),
-            0,
-        )
-        .unwrap(),
-    ];
+    let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
+    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
+    println!("---> Generated hero Id: {}", metadata_key);
+
+    // let mut new_mint_instructions = vec![
+        // create_account(
+        //     &payer.pubkey(),
+        //     &owner_key,
+        //     client
+        //         .get_minimum_balance_for_rent_exemption(Mint::LEN)
+        //         .unwrap(),
+        //     Mint::LEN as u64,
+        //     &token_key,
+        // ),
+        // initialize_mint(
+        //     &token_key,
+        //     &owner_key,
+        //     &payer.pubkey(),
+        //     Some(&payer.pubkey()),
+        //     0,
+        // )
+        // .unwrap(),
+    // ];
 
     let new_metadata_instruction = create_metadata_accounts(
         program_key,
         metadata_key,
-        mint_key,
+        // owner_key,
         payer.pubkey(),
         payer.pubkey(),
-        update_authority.pubkey(),
+        // update_authority.pubkey(),
+        id,
         name,
-        symbol,
         uri,
-        None,
-        0,
-        update_authority.pubkey() != payer.pubkey(),
-        mutable,
+        last_price,
+        listed_price,
+        owner_key,
+        // symbol,
+        // None,
+        // 0,
+        // update_authority.pubkey() != payer.pubkey(),
+        // mutable,
     );
 
     let mut instructions = vec![];
 
-    if create_new_mint {
-        instructions.append(&mut new_mint_instructions)
-    }
+    // if create_new_mint {
+    //     instructions.append(&mut new_mint_instructions)
+    // }
 
     instructions.push(new_metadata_instruction);
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    println!("---> Transaction created");
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+    println!("---> Got recent_blockhash");
     let mut signers = vec![&payer];
-    if create_new_mint {
-        signers.push(&new_mint);
-    }
-    if update_authority.pubkey() != payer.pubkey() {
-        signers.push(&update_authority)
-    }
+    // if create_new_mint {
+    //     signers.push(&new_mint);
+    // }
+    // if update_authority.pubkey() != payer.pubkey() {
+    //     signers.push(&update_authority)
+    // }
     transaction.sign(&signers, recent_blockhash);
+    println!("---> Sign Transaction");
     client.send_and_confirm_transaction(&transaction).unwrap();
     let account = client.get_account(&metadata_key).unwrap();
-    let metadata: Metadata = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Received Hero Account");
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Retrived Hero Data: {}", metadata.name);
     (metadata, metadata_key)
 }
 
@@ -648,203 +674,225 @@ fn main() {
                 .help("Update authority filepath or url to keypair besides yourself, defaults to normal keypair"),
         )
         .subcommand(
-     SubCommand::with_name("create_metadata_accounts")
+            SubCommand::with_name("create_metadata_accounts")
                 .about("Create Metadata Accounts")
                 .arg(
                     Arg::with_name("name")
                         .long("name")
-                        .global(true)
+                        .required(true)
                         .value_name("NAME")
                         .takes_value(true)
-                        .help("name for the Mint"),
-                )
-                .arg(
-                    Arg::with_name("symbol")
-                        .long("symbol")
-                        .value_name("SYMBOL")
+                        .help("Name for the Hero"),
+                ).arg(
+                    Arg::with_name("id")
+                        .long("id")
+                        .value_name("ID")
+                        .required(true)
                         .takes_value(true)
-                        .global(true)
-                        .help("symbol for the Mint"),
+                        .help("Hero Id"),
+                ).arg(
+                    Arg::with_name("last_price")
+                        .long("last_price")
+                        .value_name("LAST_PRICE")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Historical price in last sales (0-10000)"),
+                ).arg(
+                    Arg::with_name("listed_price")
+                        .long("price")
+                        .value_name("PRICE")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Published price for new sales (0-10000)"),
                 )
+                // .arg(
+                //     Arg::with_name("symbol")
+                //         .long("symbol")
+                //         .value_name("SYMBOL")
+                //         .takes_value(true)
+                //         .global(true)
+                //         .help("symbol for the Mint"),
+                // )
                 .arg(
                     Arg::with_name("uri")
                         .long("uri")
                         .value_name("URI")
                         .takes_value(true)
                         .required(true)
-                        .help("URI for the Mint"),
+                        .help("URI for the Hero"),
                 )
                 .arg(
-                    Arg::with_name("mint")
-                        .long("mint")
-                        .value_name("MINT")
+                    Arg::with_name("owner")
+                        .long("owner")
+                        .value_name("OWNER")
                         .takes_value(true)
-                        .required(false)
-                        .help("Pubkey for an existing mint (random new mint otherwise)"),
-                )
-                .arg(
-                    Arg::with_name("mutable")
-                        .long("mutable")
-                        .value_name("MUTABLE")
-                        .takes_value(false)
-                        .required(false)
-                        .help("Permit future metadata updates"),
-                )
-        ).subcommand(
-            SubCommand::with_name("mint_coins")
-                       .about("Mint coins to your mint to an account")
-                       .arg(
-                        Arg::with_name("mint")
-                            .long("mint")
-                            .value_name("MINT")
-                            .required(true)
-                            .validator(is_valid_pubkey)
-                            .takes_value(true)
-                            .help("Mint of the Metadata"),
-                    ).arg(
-                        Arg::with_name("destination")
-                            .long("destination")
-                            .value_name("DESTINATION")
-                            .required(false)
-                            .validator(is_valid_pubkey)
-                            .takes_value(true)
-                            .help("Destination account. If one isnt given, one is made."),
-                    ).arg(
-                        Arg::with_name("amount")
-                            .long("amount")
-                            .value_name("AMOUNT")
-                            .required(true)
-                            .takes_value(true)
-                            .help("How many"),
-                    )
-               )
-        .subcommand(
-     SubCommand::with_name("update_metadata_accounts")
-                .about("Update Metadata Accounts")
-                .arg(
-                    Arg::with_name("mint")
-                        .long("mint")
-                        .value_name("MINT")
                         .required(true)
-                        .validator(is_valid_pubkey)
-                        .takes_value(true)
-                        .help("Mint of the Metadata"),
+                        .help("Pubkey for an owner NFT"),
                 )
-                .arg(
-                    Arg::with_name("uri")
-                        .long("uri")
-                        .value_name("URI")
-                        .takes_value(true)
-                        .required(false)
-                        .help("new URI for the Metadata"),
-                )
-                .arg(
-                    Arg::with_name("name")
-                        .long("name")
-                        .value_name("NAME")
-                        .takes_value(true)
-                        .required(false)
-                        .help("new NAME for the Metadata"),
-                )
-                .arg(
-                    Arg::with_name("new_update_authority")
-                        .long("new_update_authority")
-                        .value_name("NEW_UPDATE_AUTHORITY")
-                        .required(false)
-                        .validator(is_valid_pubkey)
-                        .takes_value(true)
-                        .help("New update authority"))
-        ).subcommand(
-            SubCommand::with_name("show")
-                .about("Show")
-                .arg(
-                    Arg::with_name("mint")
-                        .long("mint")
-                        .value_name("MINT")
-                        .required(true)
-                        .validator(is_valid_pubkey)
-                        .takes_value(true)
-                        .help("Metadata mint"),
-                )
-        ).subcommand(
-            SubCommand::with_name("show_reservation_list")
-                .about("Show Reservation List")
-                .arg(
-                    Arg::with_name("key")
-                        .long("key")
-                        .value_name("KEY")
-                        .required(true)
-                        .validator(is_valid_pubkey)
-                        .takes_value(true)
-                        .help("Account key of reservation list"),
-                )
-        )
-        .subcommand(
-            SubCommand::with_name("create_master_edition")
-                .about("Create Master Edition out of Metadata")
-                .arg(
-                    Arg::with_name("add_one_token")
-                        .long("add_one_token")
-                        .value_name("ADD_ONE_TOKEN")
-                        .required(false)
-                        .takes_value(false)
-                        .help("Add a token to this mint before calling (useful if your mint has zero tokens, this action requires one to be present)"),
-                ).arg(
-                    Arg::with_name("max_supply")
-                        .long("max_supply")
-                        .value_name("MAX_SUPPLY")
-                        .required(false)
-                        .takes_value(true)
-                        .help("Set a maximum supply that can be minted."),
-                ).arg(
-                    Arg::with_name("mint")
-                        .long("mint")
-                        .value_name("MINT")
-                        .required(true)
-                        .validator(is_valid_pubkey)
-                        .takes_value(true)
-                        .help("Metadata mint to from which to create a master edition."),
-                ).arg(
-                    Arg::with_name("mint_authority")
-                        .long("mint_authority")
-                        .value_name("MINT_AUTHORITY")
-                        .validator(is_valid_signer)
-                        .takes_value(true)
-                        .required(false)
-                        .help("Filepath or URL to a keypair representing mint authority, defaults to you"),
-                )
-        ).subcommand(
-                SubCommand::with_name("mint_new_edition_from_master_edition_via_token")
-                        .about("Mint new edition from master edition via a token - this will just also mint the token for you and submit it.")
-                        .arg(
-                            Arg::with_name("mint")
-                                .long("mint")
-                                .value_name("MINT")
-                                .required(true)
-                                .validator(is_valid_pubkey)
-                                .takes_value(true)
-                                .help("Metadata Mint from which to mint this new edition"),
-                        ).arg(
-                            Arg::with_name("account")
-                                .long("account")
-                                .value_name("ACCOUNT")
-                                .required(false)
-                                .validator(is_valid_pubkey)
-                                .takes_value(true)
-                                .help("Account which contains authorization token. If not provided, one will be made."),
-                        ).arg(
-                            Arg::with_name("account_authority")
-                                .long("account_authority")
-                                .value_name("ACCOUNT_AUTHORITY")
-                                .required(false)
-                                .validator(is_valid_signer)
-                                .takes_value(true)
-                                .help("Account's authority, defaults to you"),
-                        )
+                // .arg(
+                //     Arg::with_name("mutable")
+                //         .long("mutable")
+                //         .value_name("MUTABLE")
+                //         .takes_value(false)
+                //         .required(false)
+                //         .help("Permit future metadata updates"),
+                // )
+        // ).subcommand(
+        //     SubCommand::with_name("mint_coins")
+        //                .about("Mint coins to your mint to an account")
+        //                .arg(
+        //                 Arg::with_name("mint")
+        //                     .long("mint")
+        //                     .value_name("MINT")
+        //                     .required(true)
+        //                     .validator(is_valid_pubkey)
+        //                     .takes_value(true)
+        //                     .help("Mint of the Metadata"),
+        //             ).arg(
+        //                 Arg::with_name("destination")
+        //                     .long("destination")
+        //                     .value_name("DESTINATION")
+        //                     .required(false)
+        //                     .validator(is_valid_pubkey)
+        //                     .takes_value(true)
+        //                     .help("Destination account. If one isnt given, one is made."),
+        //             ).arg(
+        //                 Arg::with_name("amount")
+        //                     .long("amount")
+        //                     .value_name("AMOUNT")
+        //                     .required(true)
+        //                     .takes_value(true)
+        //                     .help("How many"),
+        //             )
+        //        )
+        // .subcommand(
+        //     SubCommand::with_name("update_metadata_accounts")
+        //         .about("Update Metadata Accounts")
+        //         .arg(
+        //             Arg::with_name("mint")
+        //                 .long("mint")
+        //                 .value_name("MINT")
+        //                 .required(true)
+        //                 .validator(is_valid_pubkey)
+        //                 .takes_value(true)
+        //                 .help("Mint of the Metadata"),
+        //         )
+        //         .arg(
+        //             Arg::with_name("uri")
+        //                 .long("uri")
+        //                 .value_name("URI")
+        //                 .takes_value(true)
+        //                 .required(false)
+        //                 .help("new URI for the Metadata"),
+        //         )
+        //         .arg(
+        //             Arg::with_name("name")
+        //                 .long("name")
+        //                 .value_name("NAME")
+        //                 .takes_value(true)
+        //                 .required(false)
+        //                 .help("new NAME for the Metadata"),
+        //         )
+        //         .arg(
+        //             Arg::with_name("new_update_authority")
+        //                 .long("new_update_authority")
+        //                 .value_name("NEW_UPDATE_AUTHORITY")
+        //                 .required(false)
+        //                 .validator(is_valid_pubkey)
+        //                 .takes_value(true)
+        //                 .help("New update authority"))
+        // ).subcommand(
+        //     SubCommand::with_name("show")
+        //         .about("Show")
+        //         .arg(
+        //             Arg::with_name("mint")
+        //                 .long("mint")
+        //                 .value_name("MINT")
+        //                 .required(true)
+        //                 .validator(is_valid_pubkey)
+        //                 .takes_value(true)
+        //                 .help("Metadata mint"),
+        //         )
+        // ).subcommand(
+        //     SubCommand::with_name("show_reservation_list")
+        //         .about("Show Reservation List")
+        //         .arg(
+        //             Arg::with_name("key")
+        //                 .long("key")
+        //                 .value_name("KEY")
+        //                 .required(true)
+        //                 .validator(is_valid_pubkey)
+        //                 .takes_value(true)
+        //                 .help("Account key of reservation list"),
+        //         )
+        // )
+        // .subcommand(
+        //     SubCommand::with_name("create_master_edition")
+        //         .about("Create Master Edition out of Metadata")
+        //         .arg(
+        //             Arg::with_name("add_one_token")
+        //                 .long("add_one_token")
+        //                 .value_name("ADD_ONE_TOKEN")
+        //                 .required(false)
+        //                 .takes_value(false)
+        //                 .help("Add a token to this mint before calling (useful if your mint has zero tokens, this action requires one to be present)"),
+        //         ).arg(
+        //             Arg::with_name("max_supply")
+        //                 .long("max_supply")
+        //                 .value_name("MAX_SUPPLY")
+        //                 .required(false)
+        //                 .takes_value(true)
+        //                 .help("Set a maximum supply that can be minted."),
+        //         ).arg(
+        //             Arg::with_name("mint")
+        //                 .long("mint")
+        //                 .value_name("MINT")
+        //                 .required(true)
+        //                 .validator(is_valid_pubkey)
+        //                 .takes_value(true)
+        //                 .help("Metadata mint to from which to create a master edition."),
+        //         ).arg(
+        //             Arg::with_name("mint_authority")
+        //                 .long("mint_authority")
+        //                 .value_name("MINT_AUTHORITY")
+        //                 .validator(is_valid_signer)
+        //                 .takes_value(true)
+        //                 .required(false)
+        //                 .help("Filepath or URL to a keypair representing mint authority, defaults to you"),
+        //         )
+        // ).subcommand(
+        //     SubCommand::with_name("mint_new_edition_from_master_edition_via_token")
+        //                 .about("Mint new edition from master edition via a token - this will just also mint the token for you and submit it.")
+        //                 .arg(
+        //                     Arg::with_name("mint")
+        //                         .long("mint")
+        //                         .value_name("MINT")
+        //                         .required(true)
+        //                         .validator(is_valid_pubkey)
+        //                         .takes_value(true)
+        //                         .help("Metadata Mint from which to mint this new edition"),
+        //                 ).arg(
+        //                     Arg::with_name("account")
+        //                         .long("account")
+        //                         .value_name("ACCOUNT")
+        //                         .required(false)
+        //                         .validator(is_valid_pubkey)
+        //                         .takes_value(true)
+        //                         .help("Account which contains authorization token. If not provided, one will be made."),
+        //                 ).arg(
+        //                     Arg::with_name("account_authority")
+        //                         .long("account_authority")
+        //                         .value_name("ACCOUNT_AUTHORITY")
+        //                         .required(false)
+        //                         .validator(is_valid_signer)
+        //                         .takes_value(true)
+        //                         .help("Account's authority, defaults to you"),
+        //                 )
 
-        ).subcommand(
-                SubCommand::with_name("puff_unpuffed_metadata")
-                        .about("Take metadata that still have variable length name, symbol, and uri fields and stretch them out with null symbols so they can be searched more easily by RPC.")).get_matches();
+        // ).subcommand(
+        //     SubCommand::with_name("puff_unpuffed_metadata")
+                    // .about("Take metadata that still have variable length name, symbol, and uri fields and stretch them out with null symbols so they can be searched more easily by RPC.")
+        ).get_matches();
 
     let client = RpcClient::new(
         app_matches
@@ -860,17 +908,17 @@ fn main() {
         ("create_metadata_accounts", Some(arg_matches)) => {
             let (metadata, metadata_key) = create_metadata_account_call(arg_matches, payer, client);
             println!(
-                "Create metadata account with mint {:?} and key {:?} and name of {:?} and symbol of {:?}",
-                metadata.mint, metadata_key, metadata.data.name, metadata.data.symbol
+                "Create metadata account with owner {:?} and key {:?} and name of {:?} and id of {}",
+                metadata.owner_nft_address, metadata_key, metadata.name, metadata.id
             );
         }
-        ("update_metadata_accounts", Some(arg_matches)) => {
-            let (metadata, metadata_key) = update_metadata_account_call(arg_matches, payer, client);
-            println!(
-                "Update metadata account with mint {:?} and key {:?} which now has URI of {:?}",
-                metadata.mint, metadata_key, metadata.data.uri
-            );
-        }
+        // ("update_metadata_accounts", Some(arg_matches)) => {
+        //     let (metadata, metadata_key) = update_metadata_account_call(arg_matches, payer, client);
+        //     println!(
+        //         "Update metadata account with mint {:?} and key {:?} which now has URI of {:?}",
+        //         metadata.mint, metadata_key, metadata.data.uri
+        //     );
+        // }
         // ("create_master_edition", Some(arg_matches)) => {
         //     let (master_edition, master_edition_key) =
         //         master_edition_call(arg_matches, payer, client);
@@ -887,18 +935,18 @@ fn main() {
         //         edition_key, edition.parent, edition.edition, mint
         //     );
         // }
-        ("show", Some(arg_matches)) => {
-            show(arg_matches, payer, client);
-        }
-        ("show_reservation_list", Some(arg_matches)) => {
-            show_reservation_list(arg_matches, payer, client);
-        }
-        ("mint_coins", Some(arg_matches)) => {
-            mint_coins(arg_matches, payer, client);
-        }
-        ("puff_unpuffed_metadata", Some(arg_matches)) => {
-            puff_unpuffed_metadata(arg_matches, payer, client);
-        }
+        // ("show", Some(arg_matches)) => {
+        //     show(arg_matches, payer, client);
+        // }
+        // ("show_reservation_list", Some(arg_matches)) => {
+        //     show_reservation_list(arg_matches, payer, client);
+        // }
+        // ("mint_coins", Some(arg_matches)) => {
+        //     mint_coins(arg_matches, payer, client);
+        // }
+        // ("puff_unpuffed_metadata", Some(arg_matches)) => {
+        //     puff_unpuffed_metadata(arg_matches, payer, client);
+        // }
         _ => unreachable!(),
     }
 }
