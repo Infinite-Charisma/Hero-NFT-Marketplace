@@ -158,8 +158,8 @@ pub fn create_or_allocate_account_raw<'a>(
     size: usize,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
-    let rent = &Rent::from_account_info(rent_sysvar_info).unwrap();
-    // msg!("--> Require balance: {}", rent.minimum_balance(size));
+    let rent = &Rent::from_account_info(rent_sysvar_info)?;
+    msg!("--> Require balance: {}", rent.minimum_balance(size));
     // msg!("--> Account balance: {}", new_account_info.lamports());
     // let required_lamports = rent
     //     .minimum_balance(size)
