@@ -844,8 +844,9 @@ pub fn process_create_metadata_accounts_logic(
         MAX_DATA_SIZE,
         // metadata_authority_signer_seeds,
     )?;
-
+    msg!("--> Got outed");
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
+    msg!("--> Here?");
     assert_data_valid(
         &data,
         // update_authority_info.key,
