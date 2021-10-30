@@ -150,13 +150,13 @@ pub fn assert_initialized<T: Pack + IsInitialized>(
 /// https://github.com/solana-labs/solana-program-library/tree/master/associated-token-account/program/src/processor.rs#L51-L98
 #[inline(always)]
 pub fn create_or_allocate_account_raw<'a>(
-    // program_id: Pubkey,
+    program_id: Pubkey,
     // new_account_info: &AccountInfo<'a>,
-    // rent_sysvar_info: &AccountInfo<'a>,
-    // system_program_info: &AccountInfo<'a>,
-    // payer_info: &AccountInfo<'a>,
+    rent_sysvar_info: &AccountInfo<'a>,
+    system_program_info: &AccountInfo<'a>,
+    payer_info: &AccountInfo<'a>,
     size: usize,
-    // signer_seeds: &[&[u8]],
+    signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     // let rent = &Rent::from_account_info(rent_sysvar_info)?;
     msg!("--> Rent account fetch");
@@ -836,13 +836,13 @@ pub fn process_create_metadata_accounts_logic(
     }
     
     create_or_allocate_account_raw(
-        // *program_id,
+        *program_id,
         // metadata_account_info,
-        // rent_info,
-        // system_account_info,
-        // payer_account_info,
+        rent_info,
+        system_account_info,
+        payer_account_info,
         MAX_DATA_SIZE,
-        // metadata_authority_signer_seeds,
+        metadata_authority_signer_seeds,
     )?;
     msg!("--> Got outed");
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
