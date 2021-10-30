@@ -44,7 +44,6 @@ pub fn process_instruction<'a>(
     match instruction {
         MetadataInstruction::CreateMetadataAccount(args) => {
             msg!("Instruction: Create Metadata Accounts");
-            msg!("Program Id: {}", program_id);
             process_create_metadata_accounts(
                 program_id,
                 accounts,
