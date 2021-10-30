@@ -160,11 +160,11 @@ pub fn create_or_allocate_account_raw<'a>(
 ) -> ProgramResult {
     let rent = &Rent::from_account_info(rent_sysvar_info)?;
     msg!("--> Rent account fetch");
-    // let required_lamports = rent
-    //     .minimum_balance(size)
-    //     .max(1)
-    //     .saturating_sub(new_account_info.lamports());
-    // msg!("--> Get required lamports");
+    let required_lamports = rent
+        .minimum_balance(size)
+        .max(1)
+        .saturating_sub(new_account_info.lamports());
+    msg!("--> Get required lamports");
 
     // if required_lamports > 0 {
     //     msg!("--> Transfer {} lamports to the new account", required_lamports);
