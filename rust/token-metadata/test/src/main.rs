@@ -621,10 +621,42 @@ fn create_metadata_account_call(
 
 fn get_mints_by_update_authority(
     client: &RpcClient,
-    candy_machine_id: &String,
 ) {
     let program_key = metaplex_token_metadata::id();
     let accounts = client.get_program_accounts(&program_key).unwrap();
+    println!("--> Saved program accounts: {}", accounts.len());
+    
+    let mut nft_holders: Vec<HeroData> = Vec::new();
+
+    for (pubkey, account) in accounts {
+        println!("hero_account: {:?}", pubkey);
+        let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+        println!("data: {:?}", metadata);
+        // let token_accounts = get_holder_token_accounts(client, metadata.mint.to_string()).unwrap();
+        // for (token_address, account) in token_accounts {
+            // let data = parse_account_data(
+            //     &metadata.mint,
+            //     &TOKEN_PROGRAM_ID,
+            //     &account.data,
+            //     Some(AccountAdditionalData {
+            //         spl_token_decimals: Some(0),
+            //     }),
+            // ).unwrap();
+            // let amount = parse_token_amount(&data).unwrap();
+
+            // // Only include current holder of the NFT.
+            // if amount == 1 {
+            //     let owner_wallet = parse_owner(&data).unwrap();
+            //     let token_address = token_address.to_string();
+            //     let holder = Holder {
+            //         owner_wallet,
+            //         token_address,
+            //         mint_account: metadata.name.to_string(),
+            //     };
+            //     nft_holders.push(holder);
+            // }
+        // }
+    }
 
 }
 
@@ -911,9 +943,9 @@ fn main() {
         //         edition_key, edition.parent, edition.edition, mint
         //     );
         // }
-        // ("show", Some(arg_matches)) => {
-        //     show(arg_matches, payer, client);
-        // }
+        ("show", Some(arg_matches)) => {
+            get_mints_by_update_authority(&client);
+        }
         // ("show_reservation_list", Some(arg_matches)) => {
         //     show_reservation_list(arg_matches, payer, client);
         // }
