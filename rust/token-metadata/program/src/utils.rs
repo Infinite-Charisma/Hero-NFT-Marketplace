@@ -836,9 +836,15 @@ pub fn process_create_metadata_accounts_logic(
         return Err(MetadataError::InvalidMetadataKey.into());
     }
     msg!("--->  Here!");
+    msg!("metadata_account_info - {}",metadata_account_info.key);
+    msg!("MAX_DATA_SIZE - {}",MAX_DATA_SIZE);
+    msg!("id - {}",id);
+    msg!("rent_info - {}",rent_info.key);
+    msg!("system_account_info - {}",system_account_info.key);
+    msg!("payer_account_info - {}",payer_account_info.key);
     create_or_allocate_account_raw(
         *program_id,
-        metadata_account_info,
+        &metadata_account_info.clone(),
         rent_info,
         system_account_info,
         payer_account_info,
