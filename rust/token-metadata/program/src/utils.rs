@@ -159,13 +159,10 @@ pub fn create_or_allocate_account_raw<'a>(
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     let rent = &Rent::from_account_info(rent_sysvar_info)?;
-    msg!("--> Require balance: {}", rent.minimum_balance(size));
-    msg!("--> Account balance: {}", new_account_info.lamports());
     let required_lamports = rent
         .minimum_balance(size)
         .max(1)
         .saturating_sub(new_account_info.lamports());
-    msg!("--> Get required lamports");
 
     if required_lamports > 0 {
         msg!("--> Transfer {} lamports to the new account", required_lamports);
@@ -835,13 +832,7 @@ pub fn process_create_metadata_accounts_logic(
     if *metadata_account_info.key != metadata_key {
         return Err(MetadataError::InvalidMetadataKey.into());
     }
-    msg!("--->  Here!");
-    msg!("metadata_account_info - {}",metadata_account_info.key);
-    msg!("MAX_DATA_SIZE - {}",MAX_DATA_SIZE);
-    msg!("id - {}",id);
-    msg!("rent_info - {}",rent_info.key);
-    msg!("system_account_info - {}",system_account_info.key);
-    msg!("payer_account_info - {}",payer_account_info.key);
+    
     create_or_allocate_account_raw(
         *program_id,
         &metadata_account_info.clone(),
@@ -851,9 +842,9 @@ pub fn process_create_metadata_accounts_logic(
         MAX_DATA_SIZE,
         metadata_authority_signer_seeds,
     )?;
-    msg!("--> Got outed");
+    
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
-    msg!("--> Here?");
+    
     assert_data_valid(
         &data,
         // update_authority_info.key,
@@ -861,7 +852,7 @@ pub fn process_create_metadata_accounts_logic(
         // allow_direct_creator_writes,
         // update_authority_info.is_signer,
     )?;
-    msg!("--> validated");
+    
     // metadata.mint = *mint_info.key;
     // metadata.key = Key::MetadataV1;
     // metadata.data = data;
@@ -873,7 +864,6 @@ pub fn process_create_metadata_accounts_logic(
     metadata.owner_nft_address = data.owner_nft_address;
     // metadata.is_mutable = is_mutable;
     // metadata.update_authority = *update_authority_info.key;
-    msg!("--> Input to metadata");
 
     puff_out_data_fields(&mut metadata);
 
@@ -887,7 +877,7 @@ pub fn process_create_metadata_accounts_logic(
     // metadata.edition_nonce = Some(edition_bump_seed);
 
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
-    msg!("--> saved");
+    msg!("--> metadata saved");
     Ok(())
 }
 

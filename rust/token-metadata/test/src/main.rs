@@ -573,27 +573,6 @@ fn create_metadata_account_call(
     let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
     println!("---> Generated hero Id: {}", metadata_key);
-    println!("---> Compare: {}, Compare_content: {}", owner_key == metadata_key, &owner_key == &metadata_key);
-
-    // let mut new_mint_instructions = vec![
-        // create_account(
-        //     &payer.pubkey(),
-        //     &owner_key,
-        //     client
-        //         .get_minimum_balance_for_rent_exemption(Mint::LEN)
-        //         .unwrap(),
-        //     Mint::LEN as u64,
-        //     &token_key,
-        // ),
-        // initialize_mint(
-        //     &token_key,
-        //     &owner_key,
-        //     &payer.pubkey(),
-        //     Some(&payer.pubkey()),
-        //     0,
-        // )
-        // .unwrap(),
-    // ];
 
     let new_metadata_instruction = create_metadata_accounts(
         program_key,
@@ -624,9 +603,7 @@ fn create_metadata_account_call(
     instructions.push(new_metadata_instruction);
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-    println!("---> Transaction created");
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-    println!("---> Got recent_blockhash");
     let mut signers = vec![&payer];
     // if create_new_mint {
     //     signers.push(&new_mint);
@@ -635,13 +612,20 @@ fn create_metadata_account_call(
     //     signers.push(&update_authority)
     // }
     transaction.sign(&signers, recent_blockhash);
-    println!("---> Sign Transaction");
     client.send_and_confirm_transaction(&transaction).unwrap();
     let account = client.get_account(&metadata_key).unwrap();
-    println!("---> Received Hero Account");
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: {}", metadata.name);
     (metadata, metadata_key)
+}
+
+fn get_mints_by_update_authority(
+    client: &RpcClient,
+    candy_machine_id: &String,
+) {
+    let program_key = metaplex_token_metadata::id();
+    let accounts = client.get_program_accounts(&program_key).unwrap();
+
 }
 
 fn main() {
@@ -706,14 +690,6 @@ fn main() {
                         .takes_value(true)
                         .help("Published price for new sales (0-10000)"),
                 )
-                // .arg(
-                //     Arg::with_name("symbol")
-                //         .long("symbol")
-                //         .value_name("SYMBOL")
-                //         .takes_value(true)
-                //         .global(true)
-                //         .help("symbol for the Mint"),
-                // )
                 .arg(
                     Arg::with_name("uri")
                         .long("uri")
@@ -730,6 +706,14 @@ fn main() {
                         .required(true)
                         .help("Pubkey for an owner NFT"),
                 )
+                // .arg(
+                //     Arg::with_name("symbol")
+                //         .long("symbol")
+                //         .value_name("SYMBOL")
+                //         .takes_value(true)
+                //         .global(true)
+                //         .help("symbol for the Mint"),
+                // )
                 // .arg(
                 //     Arg::with_name("mutable")
                 //         .long("mutable")
@@ -802,18 +786,9 @@ fn main() {
         //                 .validator(is_valid_pubkey)
         //                 .takes_value(true)
         //                 .help("New update authority"))
-        // ).subcommand(
-        //     SubCommand::with_name("show")
-        //         .about("Show")
-        //         .arg(
-        //             Arg::with_name("mint")
-        //                 .long("mint")
-        //                 .value_name("MINT")
-        //                 .required(true)
-        //                 .validator(is_valid_pubkey)
-        //                 .takes_value(true)
-        //                 .help("Metadata mint"),
-        //         )
+        ).subcommand(
+            SubCommand::with_name("show")
+                .about("Show")
         // ).subcommand(
         //     SubCommand::with_name("show_reservation_list")
         //         .about("Show Reservation List")
