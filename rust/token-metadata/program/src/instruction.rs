@@ -274,9 +274,9 @@ pub fn create_metadata_accounts(
         accounts: vec![
             AccountMeta::new(metadata_account, false),
             // AccountMeta::new_readonly(mint, false),
-            AccountMeta::new_readonly(mint_authority, true),
+            //AccountMeta::new_readonly(mint_authority, true),
             AccountMeta::new(payer, true),
-            AccountMeta::new(owner_nft_address, false),
+           // AccountMeta::new(owner_nft_address, false),
             // AccountMeta::new_readonly(update_authority, update_authority_is_signer),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
