@@ -646,7 +646,7 @@ fn update_metadata_account_call(
         println!("Error: Should input at lease one update value");
         unreachable!();
     }
-    let listed_price = if is_present_price == "None" {
+    let listed_price = if is_present_price != "None" {
         is_present_price.parse::<u16>().unwrap()
     } else { 0 };
 
