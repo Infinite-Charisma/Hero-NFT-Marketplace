@@ -203,7 +203,7 @@ pub fn process_update_hero_price(
 
     assert_owned_by(metadata_account_info, program_id)?;
     assert_owned_by(owner_nft_account_info, &spl_token::id())?;
-    msg!("----> Here!");
+    msg!("----> Here! SPL token program account: {}, nft: {}", spl_token::id(), owner_nft_account_info.key);
     let token_account: Account = assert_initialized(&owner_nft_account_info)?;
     msg!("----> Retrived Token Account Data: mintkey-{}, owner-{}, amount-{}", token_account.mint, token_account.owner, token_account.amount);
     // assert_update_authority_is_correct(&metadata, update_authority_info)?;
