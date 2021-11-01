@@ -198,16 +198,16 @@ pub fn process_update_hero_price(
         msg!("----> Error: hero_owner must be a singer");
         return Err(MetadataError::InvalidMetadataKey.into());
     }
-    let mut metadata = HeroData::from_account_info(metadata_account_info)?;
-    msg!("----> Successfully got metadata: Name=>{} price=>{} owner_nft=>{}", metadata.name, metadata.listed_price, metadata.owner_nft_address);
 
     assert_owned_by(metadata_account_info, program_id)?;
-    assert_owned_by(owner_nft_account_info, &spl_token::id())?;
-    msg!("----> Here! SPL token program account: {}, nft: {}", spl_token::id(), owner_nft_account_info.key);
-    let token_account: Account = assert_initialized(&owner_nft_account_info)?;
-    msg!("----> Retrived Token Account Data: mintkey-{}, owner-{}, amount-{}", token_account.mint, token_account.owner, token_account.amount);
+    let mut metadata = HeroData::from_account_info(metadata_account_info)?;
 
-    if token_account.owner != *owner_account_info.key {
+    assert_owned_by(owner_nft_account_info, &spl_token::id())?;
+    if metadata.owner_nft_address ==  *owner_nft_account_info.key {
+        return Err(MetadataError::InvalidOwner.into());
+    }
+    let token_account: Account = assert_initialized(&owner_nft_account_info)?;
+    if token_account.owner == *owner_account_info.key {
         return Err(MetadataError::OwnerMismatch.into());
     }
 
