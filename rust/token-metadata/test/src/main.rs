@@ -700,13 +700,6 @@ fn main() {
                         .takes_value(true)
                         .help("Name for the Hero"),
                 ).arg(
-                    Arg::with_name("id")
-                        .long("id")
-                        .value_name("ID")
-                        .required(true)
-                        .takes_value(true)
-                        .help("Hero Id"),
-                ).arg(
                     Arg::with_name("last_price")
                         .long("last_price")
                         .value_name("LAST_PRICE")
