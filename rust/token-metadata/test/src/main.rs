@@ -548,11 +548,10 @@ fn create_metadata_account_call(
     println!("--->Program_id: {}\n", program_key);
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
     println!("--->Token_program_id: {}\n", token_key);
-    // let id = match app_matches.value_of("id") {
-    //     Some(val) => Some(val.parse::<u8>().unwrap()),
-    //     None => None,
-    // }.unwrap();
-    let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
+
+    let accounts = client.get_program_accounts(&program_key).unwrap();
+    println!("--> Saved hero accounts: {}", accounts.len());
+    let id = accounts.len() as u8 + 1;//app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
     let last_price = app_matches.value_of("last_price").unwrap().parse::<u16>().unwrap();
     let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
     let name = app_matches.value_of("name").unwrap().to_owned();
@@ -604,7 +603,7 @@ fn create_metadata_account_call(
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-    let mut signers = vec![&payer];
+    let signers = vec![&payer];
     // if create_new_mint {
     //     signers.push(&new_mint);
     // }
