@@ -633,7 +633,7 @@ fn update_metadata_account_call(
     println!("--->Program_id: {}\n", program_key);
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
-    let listed_price = app_matches.value_of("listed_price").unwrap_or("None");
+    let is_present_price = app_matches.value_of("listed_price").unwrap_or("None");
     let is_buyable = app_matches.is_present("allow_buy");
     let is_keep = app_matches.is_present("dont_allow_buy");
 
@@ -642,15 +642,16 @@ fn update_metadata_account_call(
         unreachable!();
     }
     
-    if listed_price == "None" && !is_buyable && !is_keep {
+    if is_present_price == "None" && !is_buyable && !is_keep {
         println!("Error: Should input at lease one update value");
         unreachable!();
     }
-    let listed_price = listed_price.parse::<u16>().unwrap();
+    let listed_price = if is_present_price == "None" {
+        is_present_price.parse::<u16>().unwrap()
+    } else { 0 };
 
-    println!("--->\n Id: {},\n Listed_price: {},\n",
-        id, listed_price
-    );
+    println!("--->\n Id: {},",id);
+    if is_present_price != "None" { println!("Price: {}", listed_price); };
     if is_buyable {
         println!("Approve buy for this Hero");
     } else if is_keep {
