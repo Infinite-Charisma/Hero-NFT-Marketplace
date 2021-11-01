@@ -38,7 +38,7 @@ use {
 };
 
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
-const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
+// const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 // fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 //     let metadata_accounts = client
 //         .get_program_accounts(&metaplex_token_metadata::id())
@@ -576,7 +576,7 @@ fn create_metadata_account_call(
         program_key,
         metadata_key,
         // owner_key,
-        payer.pubkey(),
+        // payer.pubkey(),
         payer.pubkey(),
         // update_authority.pubkey(),
         id,
@@ -630,6 +630,7 @@ fn update_metadata_account_call(
     let is_present_price = app_matches.value_of("listed_price").unwrap_or("None");
     let is_buyable = app_matches.is_present("allow_buy");
     let is_keep = app_matches.is_present("dont_allow_buy");
+    let owner_key = pubkey_of(app_matches, "owner").unwrap();
 
     if is_buyable && is_keep {
         println!("Error: Can't use allow_buy and dont_allow_buy option at the same time");
@@ -668,6 +669,7 @@ fn update_metadata_account_call(
             id,
             listed_price,
             payer.pubkey(),
+            owner_key,
         );
 
         instructions.push(new_metadata_instruction);
@@ -822,6 +824,14 @@ fn main() {
                         .takes_value(false)
                         .required(false)
                         .help("Don't allow purchase for buyer"),
+                )
+                .arg(
+                    Arg::with_name("owner")
+                        .long("owner")
+                        .value_name("OWNER")
+                        .takes_value(true)
+                        .required(true)
+                        .help("Pubkey for an owner NFT"),
                 )
         ).subcommand(
             SubCommand::with_name("show")

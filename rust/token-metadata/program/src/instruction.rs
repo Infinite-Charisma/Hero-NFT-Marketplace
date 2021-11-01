@@ -266,7 +266,7 @@ pub fn create_metadata_accounts(
     program_id: Pubkey,
     metadata_account: Pubkey,
     // mint: Pubkey,
-    mint_authority: Pubkey,
+    // mint_authority: Pubkey,
     payer: Pubkey,
     // update_authority: Pubkey,
     id: u8,
@@ -316,12 +316,14 @@ pub fn update_hero_price(
     id: u8,
     new_price: u16,
     owner: Pubkey,
+    owner_nft_address: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(metadata_account, false),
             AccountMeta::new_readonly(owner, true),
+            AccountMeta::new_readonly(owner_nft_address, false),
         ],
         data: MetadataInstruction::UpdateHeroPrice(UpdateHeroPriceArgs {
             id,

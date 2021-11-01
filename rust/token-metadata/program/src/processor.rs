@@ -10,8 +10,8 @@ use {
         },
         utils::{
             // assert_data_valid, assert_signer,
-            assert_owned_by,
-            // assert_mint_authority_matches_mint, assert_derivation, assert_initialized,
+            assert_owned_by, assert_initialized,
+            // assert_mint_authority_matches_mint, assert_derivation, 
             // assert_token_program_matches_package,
             // create_or_allocate_account_raw, get_owner_from_token_account,
             process_create_metadata_accounts_logic,
@@ -32,7 +32,7 @@ use {
         // program_error::ProgramError,
         pubkey::Pubkey,
     },
-    // spl_token::state::{Account, Mint},
+    spl_token::state::{Account, Mint},
     // metaplex_token_vault::{error::VaultError, state::VaultState},
 };
 
@@ -182,6 +182,7 @@ pub fn process_update_hero_price(
     let account_info_iter = &mut accounts.iter();
     let metadata_account_info = next_account_info(account_info_iter)?;
     let owner_account_info = next_account_info(account_info_iter)?;
+    let owner_nft_account_info = next_account_info(account_info_iter)?;
     let metadata_seeds = &[
         PREFIX.as_bytes(),
         program_id.as_ref(),
@@ -190,12 +191,20 @@ pub fn process_update_hero_price(
     let (metadata_key, _) =
         Pubkey::find_program_address(metadata_seeds, program_id);
     if *metadata_account_info.key != metadata_key {
+        msg!("----> Error: mismatch with hero id and parsed hero account");
+        return Err(MetadataError::InvalidMetadataKey.into());
+    }
+    if *owner_account_info.key != hero_owner {
+        msg!("----> Error: hero_owner must be a singer");
         return Err(MetadataError::InvalidMetadataKey.into());
     }
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
     msg!("----> Successfully got metadata: Name=>{} price=>{}", metadata.name, metadata.listed_price);
 
     assert_owned_by(metadata_account_info, program_id)?;
+    assert_owned_by(owner_nft_account_info, &spl_token::id())?;
+    let token_account: Account = assert_initialized(&owner_nft_account_info)?;
+    msg!("----> Retrived Token Account Data: mintkey-{}, owner-{}, amount-{}", token_account.mint, token_account.owner, token_account.amount);
     // assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
     // if let Some(data) = optional_data {
