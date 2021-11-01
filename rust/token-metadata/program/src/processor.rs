@@ -206,34 +206,12 @@ pub fn process_update_hero_price(
     msg!("----> Here! SPL token program account: {}, nft: {}", spl_token::id(), owner_nft_account_info.key);
     let token_account: Account = assert_initialized(&owner_nft_account_info)?;
     msg!("----> Retrived Token Account Data: mintkey-{}, owner-{}, amount-{}", token_account.mint, token_account.owner, token_account.amount);
-    // assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
-    // if let Some(data) = optional_data {
-    //     if metadata.is_mutable {
-    //         assert_data_valid(
-    //             &data,
-    //             update_authority_info.key,
-    //             &metadata,
-    //             false,
-    //             update_authority_info.is_signer,
-    //         )?;
-    //         metadata.data = data;
-    //     } else {
-    //         return Err(MetadataError::DataIsImmutable.into());
-    //     }
-    // }
+    if token_account.owner != *owner_account_info.key {
+        return Err(MetadataError::OwnerMismatch.into());
+    }
 
     metadata.listed_price = new_price;
-
-    // if let Some(val) = primary_sale_happened {
-    //     if val {
-    //         metadata.primary_sale_happened = val
-    //     } else {
-    //         return Err(MetadataError::PrimarySaleCanOnlyBeFlippedToTrue.into());
-    //     }
-    // }
-
-    // puff_out_data_fields(&mut metadata);
 
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
     Ok(())

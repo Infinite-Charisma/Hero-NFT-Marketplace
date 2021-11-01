@@ -661,7 +661,7 @@ fn update_metadata_account_call(
     println!("---> Retrived Hero Data: name-{}, price-{}", metadata.name, metadata.listed_price);
 
     let nft_account = client.get_account(&owner_key).unwrap();
-    println!("---> Account of nft address: {}", nft_account.owner);
+    println!("---> Account of mint address: {}", nft_account.owner);
 
     let mut instructions = vec![];
 
