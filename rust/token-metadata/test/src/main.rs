@@ -627,31 +627,11 @@ fn update_metadata_account_call(
     println!("--->Program_id: {}\n", program_key);
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
-    let is_present_price = app_matches.value_of("listed_price").unwrap_or("None");
-    let is_buyable = app_matches.is_present("allow_buy");
-    let is_keep = app_matches.is_present("dont_allow_buy");
+    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
     let owner_key = pubkey_of(app_matches, "owner").unwrap();
-
-    if is_buyable && is_keep {
-        println!("Error: Can't use allow_buy and dont_allow_buy option at the same time");
-        unreachable!();
-    }
     
-    if is_present_price == "None" && !is_buyable && !is_keep {
-        println!("Error: Should input at lease one update value");
-        unreachable!();
-    }
-    let listed_price = if is_present_price != "None" {
-        is_present_price.parse::<u16>().unwrap()
-    } else { 0 };
-
-    println!("--->\n Id: {},",id);
-    if is_present_price != "None" { println!("Price: {}", listed_price); };
-    if is_buyable {
-        println!("Approve buy for this Hero");
-    } else if is_keep {
-        println!("Reject buy for this Hero");
-    }
+    println!("--->\n Id: {},\n Price: {}",id, listed_price);
+    
     let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
     println!("---> Get hero account from id: {}", metadata_key);
@@ -665,18 +645,16 @@ fn update_metadata_account_call(
 
     let mut instructions = vec![];
 
-    if is_present_price != "None" {
-        let new_metadata_instruction = update_hero_price(
-            program_key,
-            metadata_key,
-            id,
-            listed_price,
-            payer.pubkey(),
-            owner_key,
-        );
+    let new_metadata_instruction = update_hero_price(
+        program_key,
+        metadata_key,
+        id,
+        listed_price,
+        payer.pubkey(),
+        owner_key,
+    );
 
-        instructions.push(new_metadata_instruction);
-    }
+    instructions.push(new_metadata_instruction);
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
@@ -810,23 +788,8 @@ fn main() {
                         .long("price")
                         .value_name("PRICE")
                         .takes_value(true)
+                        .required(true)
                         .help("Published price for new sales (0-10000)"),
-                )
-                .arg(
-                    Arg::with_name("allow_buy")
-                        .long("allow_buy")
-                        .value_name("BUYABLE")
-                        .takes_value(false)
-                        .required(false)
-                        .help("Permit purchase for buyer"),
-                )
-                .arg(
-                    Arg::with_name("dont_allow_buy")
-                        .long("dont_allow_buy")
-                        .value_name("NOT_BUYABLE")
-                        .takes_value(false)
-                        .required(false)
-                        .help("Don't allow purchase for buyer"),
                 )
                 .arg(
                     Arg::with_name("owner")
