@@ -660,6 +660,9 @@ fn update_metadata_account_call(
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: name-{}, price-{}", metadata.name, metadata.listed_price);
 
+    let nft_account = client.get_account(&owner_key).unwrap();
+    println!("---> Account of nft address: {}", nft_account.owner);
+
     let mut instructions = vec![];
 
     if is_present_price != "None" {
