@@ -657,7 +657,7 @@ fn update_metadata_account_call(
     
     let account = client.get_account(&metadata_key).unwrap();
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
-    println!("---> Retrived Hero Data: {}", metadata.name);
+    println!("---> Retrived Hero Data: name-{}, price-{}", metadata.name, metadata.listed_price);
 
     let mut instructions = vec![];
 
@@ -678,10 +678,10 @@ fn update_metadata_account_call(
     let signers = vec![&payer];
     transaction.sign(&signers, recent_blockhash);
     client.send_and_confirm_transaction(&transaction).unwrap();
-    
+
     let account = client.get_account(&metadata_key).unwrap();
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
-    println!("---> Retrived Hero Data: {}", metadata.name);
+    println!("---> Updated Hero Data: name-{} new_price-{}", metadata.name, metadata.listed_price);
     (metadata, metadata_key)
 }
 

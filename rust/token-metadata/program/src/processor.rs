@@ -9,7 +9,8 @@ use {
             // Metadata, EDITION,
         },
         utils::{
-            // assert_data_valid, assert_owned_by, assert_signer,
+            // assert_data_valid, assert_signer,
+            assert_owned_by,
             // assert_mint_authority_matches_mint, assert_derivation, assert_initialized,
             // assert_token_program_matches_package,
             // create_or_allocate_account_raw, get_owner_from_token_account,
@@ -178,11 +179,9 @@ pub fn process_update_hero_price(
     new_price: u16,
     hero_owner: Pubkey,
 ) -> ProgramResult {
-    msg!("----> Received args: hero_id-{}, new_price-{}, hero_owner-{}", hero_id, new_price, hero_owner);
     let account_info_iter = &mut accounts.iter();
     let metadata_account_info = next_account_info(account_info_iter)?;
     let owner_account_info = next_account_info(account_info_iter)?;
-    msg!("----> Received Hero Owner Account Address: {:?}", owner_account_info.key);
     let metadata_seeds = &[
         PREFIX.as_bytes(),
         program_id.as_ref(),
@@ -190,14 +189,13 @@ pub fn process_update_hero_price(
     ];
     let (metadata_key, _) =
         Pubkey::find_program_address(metadata_seeds, program_id);
-    msg!("----> received hero: {}, generated hero: {}", metadata_account_info.key, metadata_key);
     if *metadata_account_info.key != metadata_key {
         return Err(MetadataError::InvalidMetadataKey.into());
     }
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
-    msg!("----> Successfully got metadata: Name=>{} URL=>{}", metadata.name, metadata.uri);
+    msg!("----> Successfully got metadata: Name=>{} price=>{}", metadata.name, metadata.listed_price);
 
-    // assert_owned_by(metadata_account_info, program_id)?;
+    assert_owned_by(metadata_account_info, program_id)?;
     // assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
     // if let Some(data) = optional_data {
@@ -215,9 +213,7 @@ pub fn process_update_hero_price(
     //     }
     // }
 
-    // if let Some(val) = update_authority {
-    //     metadata.update_authority = val;
-    // }
+    metadata.listed_price = new_price;
 
     // if let Some(val) = primary_sale_happened {
     //     if val {

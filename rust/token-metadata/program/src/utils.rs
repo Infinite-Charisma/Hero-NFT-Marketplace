@@ -750,13 +750,13 @@ pub struct TokenMintToParams<'a: 'b, 'b> {
 //     }
 // }
 
-// pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
-//     if account.owner != owner {
-//         Err(MetadataError::IncorrectOwner.into())
-//     } else {
-//         Ok(())
-//     }
-// }
+pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
+    if account.owner != owner {
+        Err(MetadataError::IncorrectOwner.into())
+    } else {
+        Ok(())
+    }
+}
 
 // pub fn assert_token_program_matches_package(token_program_info: &AccountInfo) -> ProgramResult {
 //     if *token_program_info.key != spl_token::id() {
