@@ -34,12 +34,14 @@ pub struct CreateMetadataAccountArgs {
     pub id: u8,
 }
 
-// #[repr(C)]
-// #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
-// pub struct CreateMasterEditionArgs {
-//     /// If set, means that no more than this number of editions can ever be minted. This is immutable.
-//     pub max_supply: Option<u64>,
-// }
+#[repr(C)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+pub struct UpdateHeroPriceArgs {
+    /// Update price of Hero from Id for it's owner.
+    pub id: u8,
+    pub price: u16,
+    pub owner: Pubkey,
+}
 
 // #[repr(C)]
 // #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
@@ -59,6 +61,16 @@ pub enum MetadataInstruction {
     ///   5. `[]` System program
     ///   6. `[]` Rent info
     CreateMetadataAccount(CreateMetadataAccountArgs),
+    
+    /// Update price of Hero from Id.
+    ///   0. `[writable]`  Metadata key (pda of ['metadata', program id, mint id])
+    ///   1. `[]` Mint of token asset
+    ///   2. `[signer]` Mint authority
+    ///   3. `[signer]` payer
+    ///   4. `[]` update authority info
+    ///   5. `[]` System program
+    ///   6. `[]` Rent info
+    UpdateHeroPrice(UpdateHeroPriceArgs),
 /*
     /// Update a Metadata
     ///   0. `[writable]` Metadata account
@@ -297,30 +309,29 @@ pub fn create_metadata_accounts(
     }
 }
 
-// /// update metadata account instruction
-// pub fn update_metadata_accounts(
-//     program_id: Pubkey,
-//     metadata_account: Pubkey,
-//     update_authority: Pubkey,
-//     new_update_authority: Option<Pubkey>,
-//     data: Option<Data>,
-//     primary_sale_happened: Option<bool>,
-// ) -> Instruction {
-//     Instruction {
-//         program_id,
-//         accounts: vec![
-//             AccountMeta::new(metadata_account, false),
-//             AccountMeta::new_readonly(update_authority, true),
-//         ],
-//         data: MetadataInstruction::UpdateMetadataAccount(UpdateMetadataAccountArgs {
-//             data,
-//             update_authority: new_update_authority,
-//             primary_sale_happened,
-//         })
-//         .try_to_vec()
-//         .unwrap(),
-//     }
-// }
+/// update hero price instruction
+pub fn update_hero_price(
+    program_id: Pubkey,
+    metadata_account: Pubkey,
+    id: u8,
+    new_price: u16,
+    owner: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(metadata_account, false),
+            AccountMeta::new_readonly(owner, true),
+        ],
+        data: MetadataInstruction::UpdateHeroPrice(UpdateHeroPriceArgs {
+            id,
+            price: new_price,
+            owner,
+        })
+        .try_to_vec()
+        .unwrap(),
+    }
+}
 
 // /// puff metadata account instruction
 // pub fn puff_metadata_account(program_id: Pubkey, metadata_account: Pubkey) -> Instruction {

@@ -6,6 +6,7 @@ use {
         instruction::{
             // create_master_edition, mint_new_edition_from_master_edition_via_token,
             create_metadata_accounts,
+            update_hero_price,
             // puff_metadata_account,
             // update_metadata_accounts,
         },
@@ -622,13 +623,6 @@ fn update_metadata_account_call(
     payer: Keypair,
     client: RpcClient,
 ) -> (HeroData, Pubkey) {
-    // let update_authority = read_keypair_file(
-    //     app_matches
-    //         .value_of("update_authority")
-    //         .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
-    // )
-    // .unwrap();
-
     let program_key = metaplex_token_metadata::id();
     println!("--->Program_id: {}\n", program_key);
 
@@ -665,48 +659,29 @@ fn update_metadata_account_call(
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: {}", metadata.name);
 
-    // let new_metadata_instruction = update_metadata_accounts(
-    //     program_key,
-    //     metadata_key,
-    //     // owner_key,
-    //     payer.pubkey(),
-    //     payer.pubkey(),
-    //     // update_authority.pubkey(),
-    //     id,
-    //     name,
-    //     uri,
-    //     last_price,
-    //     listed_price,
-    //     owner_key,
-    //     // symbol,
-    //     // None,
-    //     // 0,
-    //     // update_authority.pubkey() != payer.pubkey(),
-    //     // mutable,
-    // );
+    let mut instructions = vec![];
 
-    // let mut instructions = vec![];
+    if is_present_price != "None" {
+        let new_metadata_instruction = update_hero_price(
+            program_key,
+            metadata_key,
+            id,
+            listed_price,
+            payer.pubkey(),
+        );
 
-    // // if update_new_mint {
-    // //     instructions.append(&mut new_mint_instructions)
-    // // }
+        instructions.push(new_metadata_instruction);
+    }
 
-    // instructions.push(new_metadata_instruction);
-
-    // let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
-    // let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-    // let signers = vec![&payer];
-    // // if update_new_mint {
-    // //     signers.push(&new_mint);
-    // // }
-    // // if update_authority.pubkey() != payer.pubkey() {
-    // //     signers.push(&update_authority)
-    // // }
-    // transaction.sign(&signers, recent_blockhash);
-    // client.send_and_confirm_transaction(&transaction).unwrap();
-    // let account = client.get_account(&metadata_key).unwrap();
-    // let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
-    // println!("---> Retrived Hero Data: {}", metadata.name);
+    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+    let signers = vec![&payer];
+    transaction.sign(&signers, recent_blockhash);
+    client.send_and_confirm_transaction(&transaction).unwrap();
+    
+    let account = client.get_account(&metadata_key).unwrap();
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Retrived Hero Data: {}", metadata.name);
     (metadata, metadata_key)
 }
 
@@ -717,7 +692,7 @@ fn get_all_heros(
     let accounts = client.get_program_accounts(&program_key).unwrap();
     println!("--> Saved program accounts: {}", accounts.len());
     
-    let mut nft_holders: Vec<HeroData> = Vec::new();
+    // let mut nft_holders: Vec<HeroData> = Vec::new();
 
     for (pubkey, account) in accounts {
         println!("hero_account: {:?}", pubkey);
