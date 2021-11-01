@@ -199,10 +199,11 @@ pub fn process_update_hero_price(
         return Err(MetadataError::InvalidMetadataKey.into());
     }
     let mut metadata = HeroData::from_account_info(metadata_account_info)?;
-    msg!("----> Successfully got metadata: Name=>{} price=>{}", metadata.name, metadata.listed_price);
+    msg!("----> Successfully got metadata: Name=>{} price=>{} owner_nft=>{}", metadata.name, metadata.listed_price, metadata.owner_nft_address);
 
     assert_owned_by(metadata_account_info, program_id)?;
     assert_owned_by(owner_nft_account_info, &spl_token::id())?;
+    msg!("----> Here!");
     let token_account: Account = assert_initialized(&owner_nft_account_info)?;
     msg!("----> Retrived Token Account Data: mintkey-{}, owner-{}, amount-{}", token_account.mint, token_account.owner, token_account.amount);
     // assert_update_authority_is_correct(&metadata, update_authority_info)?;
