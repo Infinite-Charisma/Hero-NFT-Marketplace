@@ -546,13 +546,11 @@ fn create_metadata_account_call(
 
     let program_key = metaplex_token_metadata::id();
     println!("--->Program_id: {}\n", program_key);
-    let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
-    println!("--->Token_program_id: {}\n", token_key);
 
     let accounts = client.get_program_accounts(&program_key).unwrap();
     println!("--> Saved hero accounts: {}", accounts.len());
     let id = accounts.len() as u8 + 1;//app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
-    let last_price = app_matches.value_of("last_price").unwrap().parse::<u16>().unwrap();
+    let last_price = 0 as u16;
     let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
     let name = app_matches.value_of("name").unwrap().to_owned();
     // let symbol = app_matches.value_of("symbol").unwrap().to_owned();
@@ -618,7 +616,100 @@ fn create_metadata_account_call(
     (metadata, metadata_key)
 }
 
-fn get_mints_by_update_authority(
+
+fn update_metadata_account_call(
+    app_matches: &ArgMatches,
+    payer: Keypair,
+    client: RpcClient,
+) -> (HeroData, Pubkey) {
+    // let update_authority = read_keypair_file(
+    //     app_matches
+    //         .value_of("update_authority")
+    //         .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
+    // )
+    // .unwrap();
+
+    let program_key = metaplex_token_metadata::id();
+    println!("--->Program_id: {}\n", program_key);
+
+    let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
+    let listed_price = app_matches.value_of("listed_price").unwrap_or("None");
+    let is_buyable = app_matches.is_present("allow_buy");
+    let is_keep = app_matches.is_present("dont_allow_buy");
+
+    if is_buyable && is_keep {
+        println!("Error: Can't use allow_buy and dont_allow_buy option at the same time");
+        unreachable!();
+    }
+    
+    if listed_price == "None" && !is_buyable && !is_keep {
+        println!("Error: Should input at lease one update value");
+        unreachable!();
+    }
+    let listed_price = listed_price.parse::<u16>().unwrap();
+
+    println!("--->\n Id: {},\n Listed_price: {},\n",
+        id, listed_price
+    );
+    if is_buyable {
+        println!("Approve buy for this Hero");
+    } else if is_keep {
+        println!("Reject buy for this Hero");
+    }
+    let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
+    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
+    println!("---> Get hero account from id: {}", metadata_key);
+    
+    let account = client.get_account(&metadata_key).unwrap();
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Retrived Hero Data: {}", metadata.name);
+
+    // let new_metadata_instruction = update_metadata_accounts(
+    //     program_key,
+    //     metadata_key,
+    //     // owner_key,
+    //     payer.pubkey(),
+    //     payer.pubkey(),
+    //     // update_authority.pubkey(),
+    //     id,
+    //     name,
+    //     uri,
+    //     last_price,
+    //     listed_price,
+    //     owner_key,
+    //     // symbol,
+    //     // None,
+    //     // 0,
+    //     // update_authority.pubkey() != payer.pubkey(),
+    //     // mutable,
+    // );
+
+    // let mut instructions = vec![];
+
+    // // if update_new_mint {
+    // //     instructions.append(&mut new_mint_instructions)
+    // // }
+
+    // instructions.push(new_metadata_instruction);
+
+    // let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    // let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+    // let signers = vec![&payer];
+    // // if update_new_mint {
+    // //     signers.push(&new_mint);
+    // // }
+    // // if update_authority.pubkey() != payer.pubkey() {
+    // //     signers.push(&update_authority)
+    // // }
+    // transaction.sign(&signers, recent_blockhash);
+    // client.send_and_confirm_transaction(&transaction).unwrap();
+    // let account = client.get_account(&metadata_key).unwrap();
+    // let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    // println!("---> Retrived Hero Data: {}", metadata.name);
+    (metadata, metadata_key)
+}
+
+fn get_all_heros(
     client: &RpcClient,
 ) {
     let program_key = metaplex_token_metadata::id();
@@ -688,8 +779,7 @@ fn main() {
                 .takes_value(true)
                 .global(true)
                 .help("Update authority filepath or url to keypair besides yourself, defaults to normal keypair"),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("create_metadata_accounts")
                 .about("Create Metadata Accounts")
                 .arg(
@@ -699,13 +789,6 @@ fn main() {
                         .value_name("NAME")
                         .takes_value(true)
                         .help("Name for the Hero"),
-                ).arg(
-                    Arg::with_name("last_price")
-                        .long("last_price")
-                        .value_name("LAST_PRICE")
-                        .required(true)
-                        .takes_value(true)
-                        .help("Historical price in last sales (0-10000)"),
                 ).arg(
                     Arg::with_name("listed_price")
                         .long("price")
@@ -730,22 +813,43 @@ fn main() {
                         .required(true)
                         .help("Pubkey for an owner NFT"),
                 )
-                // .arg(
-                //     Arg::with_name("symbol")
-                //         .long("symbol")
-                //         .value_name("SYMBOL")
-                //         .takes_value(true)
-                //         .global(true)
-                //         .help("symbol for the Mint"),
-                // )
-                // .arg(
-                //     Arg::with_name("mutable")
-                //         .long("mutable")
-                //         .value_name("MUTABLE")
-                //         .takes_value(false)
-                //         .required(false)
-                //         .help("Permit future metadata updates"),
-                // )
+        ).subcommand(
+            SubCommand::with_name("update_metadata_accounts")
+                .about("Update Metadata Accounts")
+                .arg(
+                    Arg::with_name("id")
+                        .long("id")
+                        .value_name("ID")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Hero Id for update"),
+                )
+                .arg(
+                    Arg::with_name("listed_price")
+                        .long("price")
+                        .value_name("PRICE")
+                        .takes_value(true)
+                        .help("Published price for new sales (0-10000)"),
+                )
+                .arg(
+                    Arg::with_name("allow_buy")
+                        .long("allow_buy")
+                        .value_name("BUYABLE")
+                        .takes_value(false)
+                        .required(false)
+                        .help("Permit purchase for buyer"),
+                )
+                .arg(
+                    Arg::with_name("dont_allow_buy")
+                        .long("dont_allow_buy")
+                        .value_name("NOT_BUYABLE")
+                        .takes_value(false)
+                        .required(false)
+                        .help("Don't allow purchase for buyer"),
+                )
+        ).subcommand(
+            SubCommand::with_name("show")
+                .about("Show")
         // ).subcommand(
         //     SubCommand::with_name("mint_coins")
         //                .about("Mint coins to your mint to an account")
@@ -810,9 +914,6 @@ fn main() {
         //                 .validator(is_valid_pubkey)
         //                 .takes_value(true)
         //                 .help("New update authority"))
-        ).subcommand(
-            SubCommand::with_name("show")
-                .about("Show")
         // ).subcommand(
         //     SubCommand::with_name("show_reservation_list")
         //         .about("Show Reservation List")
@@ -912,6 +1013,13 @@ fn main() {
                 metadata.owner_nft_address, metadata_key, metadata.name, metadata.id
             );
         }
+        ("update_metadata_accounts", Some(arg_matches)) => {
+            let (metadata, metadata_key) = update_metadata_account_call(arg_matches, payer, client);
+            println!(
+                "Update metadata account with owner {:?} and key {:?} and name of {:?} and id of {}",
+                metadata.owner_nft_address, metadata_key, metadata.name, metadata.id
+            );
+        }
         // ("update_metadata_accounts", Some(arg_matches)) => {
         //     let (metadata, metadata_key) = update_metadata_account_call(arg_matches, payer, client);
         //     println!(
@@ -936,7 +1044,7 @@ fn main() {
         //     );
         // }
         ("show", Some(arg_matches)) => {
-            get_mints_by_update_authority(&client);
+            get_all_heros(&client);
         }
         // ("show_reservation_list", Some(arg_matches)) => {
         //     show_reservation_list(arg_matches, payer, client);
