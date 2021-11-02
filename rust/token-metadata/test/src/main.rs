@@ -4,14 +4,11 @@ use {
     clap::{crate_description, crate_name, crate_version, App, Arg, ArgMatches, SubCommand},
     metaplex_token_metadata::{
         instruction::{
-            // create_master_edition, mint_new_edition_from_master_edition_via_token,
             create_metadata_accounts,
             update_hero_price,
-            // puff_metadata_account,
-            // update_metadata_accounts,
+            purchase_hero,
         },
         state::{
-            // get_reservation_list, EDITION, Edition, Key, MasterEditionV1, MasterEditionV2, Metadata,
             HeroData, PREFIX,
             // MAX_SYMBOL_LENGTH, MAX_NAME_LENGTH, MAX_URI_LENGTH,
         },
@@ -34,7 +31,7 @@ use {
         instruction::{initialize_account, initialize_mint, mint_to},
         state::{Account, Mint},
     },
-    std::str::FromStr,
+    // std::str::FromStr,
 };
 
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -575,21 +572,13 @@ fn create_metadata_account_call(
     let new_metadata_instruction = create_metadata_accounts(
         program_key,
         metadata_key,
-        // owner_key,
-        // payer.pubkey(),
         payer.pubkey(),
-        // update_authority.pubkey(),
         id,
         name,
         uri,
         last_price,
         listed_price,
         owner_key,
-        // symbol,
-        // None,
-        // 0,
-        // update_authority.pubkey() != payer.pubkey(),
-        // mutable,
     );
 
     let mut instructions = vec![];
@@ -617,7 +606,6 @@ fn create_metadata_account_call(
     (metadata, metadata_key)
 }
 
-
 fn update_metadata_account_call(
     app_matches: &ArgMatches,
     payer: Keypair,
@@ -639,9 +627,6 @@ fn update_metadata_account_call(
     let account = client.get_account(&metadata_key).unwrap();
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: name-{}, price-{}", metadata.name, metadata.listed_price);
-
-    let nft_account = client.get_account(&owner_key).unwrap();
-    println!("---> Account of mint address: {}", nft_account.owner);
 
     let mut instructions = vec![];
 
@@ -706,7 +691,65 @@ fn get_all_heros(
             // }
         // }
     }
+}
 
+fn purchase_hero_call(
+    app_matches: &ArgMatches,
+    payer: Keypair,
+    client: RpcClient,
+) -> (HeroData, Pubkey) {
+    let program_key = metaplex_token_metadata::id();
+    println!("--->Program_id: {}\n", program_key);
+
+    let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
+    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
+    let name = app_matches.value_of("name").unwrap().to_owned();
+    let uri = app_matches.value_of("uri").unwrap().to_owned();
+    
+    println!("--->\n Id: {},", id);
+    if listed_price != None.unwrap() {
+        println!("   Price: {}", listed_price);
+    }
+    if name != None.unwrap() {
+        println!("   Name: {}", name);
+    }
+    if uri != None.unwrap() {
+        println!("   Uri: {}", uri);
+    }
+    
+    let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
+    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
+    println!("---> Get hero account from id: {}", metadata_key);
+    
+    let account = client.get_account(&metadata_key).unwrap();
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Retrived Hero Data: name-{}, price-{}, owner_nft_account-{}", metadata.name, metadata.listed_price, metadata.owner_nft_address);
+
+    let mut instructions = vec![];
+
+    let new_metadata_instruction = purchase_hero(
+        program_key,
+        metadata_key,
+        id,
+        name,
+        uri,
+        listed_price,
+        payer.pubkey(),
+        metadata.owner_nft_address,
+    );
+
+    instructions.push(new_metadata_instruction);
+
+    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+    let signers = vec![&payer];
+    transaction.sign(&signers, recent_blockhash);
+    client.send_and_confirm_transaction(&transaction).unwrap();
+
+    let account = client.get_account(&metadata_key).unwrap();
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Updated Hero Data: name-{} new_price-{}", metadata.name, metadata.listed_price);
+    (metadata, metadata_key)
 }
 
 fn main() {
@@ -802,147 +845,37 @@ fn main() {
         ).subcommand(
             SubCommand::with_name("show")
                 .about("Show")
-        // ).subcommand(
-        //     SubCommand::with_name("mint_coins")
-        //                .about("Mint coins to your mint to an account")
-        //                .arg(
-        //                 Arg::with_name("mint")
-        //                     .long("mint")
-        //                     .value_name("MINT")
-        //                     .required(true)
-        //                     .validator(is_valid_pubkey)
-        //                     .takes_value(true)
-        //                     .help("Mint of the Metadata"),
-        //             ).arg(
-        //                 Arg::with_name("destination")
-        //                     .long("destination")
-        //                     .value_name("DESTINATION")
-        //                     .required(false)
-        //                     .validator(is_valid_pubkey)
-        //                     .takes_value(true)
-        //                     .help("Destination account. If one isnt given, one is made."),
-        //             ).arg(
-        //                 Arg::with_name("amount")
-        //                     .long("amount")
-        //                     .value_name("AMOUNT")
-        //                     .required(true)
-        //                     .takes_value(true)
-        //                     .help("How many"),
-        //             )
-        //        )
-        // .subcommand(
-        //     SubCommand::with_name("update_metadata_accounts")
-        //         .about("Update Metadata Accounts")
-        //         .arg(
-        //             Arg::with_name("mint")
-        //                 .long("mint")
-        //                 .value_name("MINT")
-        //                 .required(true)
-        //                 .validator(is_valid_pubkey)
-        //                 .takes_value(true)
-        //                 .help("Mint of the Metadata"),
-        //         )
-        //         .arg(
-        //             Arg::with_name("uri")
-        //                 .long("uri")
-        //                 .value_name("URI")
-        //                 .takes_value(true)
-        //                 .required(false)
-        //                 .help("new URI for the Metadata"),
-        //         )
-        //         .arg(
-        //             Arg::with_name("name")
-        //                 .long("name")
-        //                 .value_name("NAME")
-        //                 .takes_value(true)
-        //                 .required(false)
-        //                 .help("new NAME for the Metadata"),
-        //         )
-        //         .arg(
-        //             Arg::with_name("new_update_authority")
-        //                 .long("new_update_authority")
-        //                 .value_name("NEW_UPDATE_AUTHORITY")
-        //                 .required(false)
-        //                 .validator(is_valid_pubkey)
-        //                 .takes_value(true)
-        //                 .help("New update authority"))
-        // ).subcommand(
-        //     SubCommand::with_name("show_reservation_list")
-        //         .about("Show Reservation List")
-        //         .arg(
-        //             Arg::with_name("key")
-        //                 .long("key")
-        //                 .value_name("KEY")
-        //                 .required(true)
-        //                 .validator(is_valid_pubkey)
-        //                 .takes_value(true)
-        //                 .help("Account key of reservation list"),
-        //         )
-        // )
-        // .subcommand(
-        //     SubCommand::with_name("create_master_edition")
-        //         .about("Create Master Edition out of Metadata")
-        //         .arg(
-        //             Arg::with_name("add_one_token")
-        //                 .long("add_one_token")
-        //                 .value_name("ADD_ONE_TOKEN")
-        //                 .required(false)
-        //                 .takes_value(false)
-        //                 .help("Add a token to this mint before calling (useful if your mint has zero tokens, this action requires one to be present)"),
-        //         ).arg(
-        //             Arg::with_name("max_supply")
-        //                 .long("max_supply")
-        //                 .value_name("MAX_SUPPLY")
-        //                 .required(false)
-        //                 .takes_value(true)
-        //                 .help("Set a maximum supply that can be minted."),
-        //         ).arg(
-        //             Arg::with_name("mint")
-        //                 .long("mint")
-        //                 .value_name("MINT")
-        //                 .required(true)
-        //                 .validator(is_valid_pubkey)
-        //                 .takes_value(true)
-        //                 .help("Metadata mint to from which to create a master edition."),
-        //         ).arg(
-        //             Arg::with_name("mint_authority")
-        //                 .long("mint_authority")
-        //                 .value_name("MINT_AUTHORITY")
-        //                 .validator(is_valid_signer)
-        //                 .takes_value(true)
-        //                 .required(false)
-        //                 .help("Filepath or URL to a keypair representing mint authority, defaults to you"),
-        //         )
-        // ).subcommand(
-        //     SubCommand::with_name("mint_new_edition_from_master_edition_via_token")
-        //                 .about("Mint new edition from master edition via a token - this will just also mint the token for you and submit it.")
-        //                 .arg(
-        //                     Arg::with_name("mint")
-        //                         .long("mint")
-        //                         .value_name("MINT")
-        //                         .required(true)
-        //                         .validator(is_valid_pubkey)
-        //                         .takes_value(true)
-        //                         .help("Metadata Mint from which to mint this new edition"),
-        //                 ).arg(
-        //                     Arg::with_name("account")
-        //                         .long("account")
-        //                         .value_name("ACCOUNT")
-        //                         .required(false)
-        //                         .validator(is_valid_pubkey)
-        //                         .takes_value(true)
-        //                         .help("Account which contains authorization token. If not provided, one will be made."),
-        //                 ).arg(
-        //                     Arg::with_name("account_authority")
-        //                         .long("account_authority")
-        //                         .value_name("ACCOUNT_AUTHORITY")
-        //                         .required(false)
-        //                         .validator(is_valid_signer)
-        //                         .takes_value(true)
-        //                         .help("Account's authority, defaults to you"),
-        //                 )
-
-        // ).subcommand(
+        ).subcommand(
+            SubCommand::with_name("buy_hero")
+                .about("Buy hero and mint NFT to your account")
+                .arg(
+                    Arg::with_name("id")
+                        .long("id")
+                        .value_name("ID")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Hero Id for update"),
+                )
+                .arg(
+                    Arg::with_name("name")
+                        .long("new_name")
+                        .value_name("NAME")
+                        .takes_value(true)
+                        .help("Name for the Hero"),
+                ).arg(
+                    Arg::with_name("listed_price")
+                        .long("new_price")
+                        .value_name("PRICE")
+                        .takes_value(true)
+                        .help("Published price for new sales (0-10000)"),
+                )
+                .arg(
+                    Arg::with_name("uri")
+                        .long("new_uri")
+                        .value_name("URI")
+                        .required(true)
+                        .help("URI for the Hero"),
+                )
         //     SubCommand::with_name("puff_unpuffed_metadata")
                     // .about("Take metadata that still have variable length name, symbol, and uri fields and stretch them out with null symbols so they can be searched more easily by RPC.")
         ).get_matches();
@@ -972,41 +905,16 @@ fn main() {
                 metadata.owner_nft_address, metadata_key, metadata.name, metadata.id
             );
         }
-        // ("update_metadata_accounts", Some(arg_matches)) => {
-        //     let (metadata, metadata_key) = update_metadata_account_call(arg_matches, payer, client);
-        //     println!(
-        //         "Update metadata account with mint {:?} and key {:?} which now has URI of {:?}",
-        //         metadata.mint, metadata_key, metadata.data.uri
-        //     );
-        // }
-        // ("create_master_edition", Some(arg_matches)) => {
-        //     let (master_edition, master_edition_key) =
-        //         master_edition_call(arg_matches, payer, client);
-        //     println!(
-        //         "Created master edition {:?} with key {:?}",
-        //         master_edition, master_edition_key
-        //     );
-        // }
-        // ("mint_new_edition_from_master_edition_via_token", Some(arg_matches)) => {
-        //     let (edition, edition_key, mint) =
-        //         mint_edition_via_token_call(arg_matches, payer, client);
-        //     println!(
-        //         "New edition: {:?}\nParent edition: {:?}\nEdition number: {:?}\nToken mint: {:?}",
-        //         edition_key, edition.parent, edition.edition, mint
-        //     );
-        // }
         ("show", Some(arg_matches)) => {
             get_all_heros(&client);
         }
-        // ("show_reservation_list", Some(arg_matches)) => {
-        //     show_reservation_list(arg_matches, payer, client);
-        // }
-        // ("mint_coins", Some(arg_matches)) => {
-        //     mint_coins(arg_matches, payer, client);
-        // }
-        // ("puff_unpuffed_metadata", Some(arg_matches)) => {
-        //     puff_unpuffed_metadata(arg_matches, payer, client);
-        // }
+        ("buy_hero", Some(arg_matches)) => {
+            let (metadata, metadata_key) = purchase_hero_call(arg_matches, payer, client);
+            println!(
+                "Minted Token account with owner {:?} and key {:?} and name of {:?} and id of {}",
+                metadata.owner_nft_address, metadata_key, metadata.name, metadata.id
+            );
+        }
         _ => unreachable!(),
     }
 }

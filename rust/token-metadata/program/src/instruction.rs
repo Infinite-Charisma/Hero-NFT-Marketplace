@@ -43,11 +43,14 @@ pub struct UpdateHeroPriceArgs {
     pub owner: Pubkey,
 }
 
-// #[repr(C)]
-// #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
-// pub struct MintNewEditionFromMasterEditionViaTokenArgs {
-//     pub edition: u64,
-// }
+#[repr(C)]
+#[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
+pub struct PurchaseHeroArgs {
+    pub id: u8,
+    pub new_name: Option<String>,
+    pub new_uri: Option<String>,
+    pub new_price: Option<u16>,
+}
 
 /// Instructions supported by the Metadata program.
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
@@ -71,6 +74,16 @@ pub enum MetadataInstruction {
     ///   5. `[]` System program
     ///   6. `[]` Rent info
     UpdateHeroPrice(UpdateHeroPriceArgs),
+
+    /// Update price of Hero from Id.
+    ///   0. `[writable]`  Metadata key (pda of ['metadata', program id, mint id])
+    ///   1. `[]` Mint of token asset
+    ///   2. `[signer]` Mint authority
+    ///   3. `[signer]` payer
+    ///   4. `[]` update authority info
+    ///   5. `[]` System program
+    ///   6. `[]` Rent info
+    PurchaseHero(PurchaseHeroArgs),
 /*
     /// Update a Metadata
     ///   0. `[writable]` Metadata account
@@ -329,6 +342,37 @@ pub fn update_hero_price(
             id,
             price: new_price,
             owner,
+        })
+        .try_to_vec()
+        .unwrap(),
+    }
+}
+
+/// purchase hero instruction
+pub fn purchase_hero(
+    program_id: Pubkey,
+    metadata_account: Pubkey,
+    id: u8,
+    new_name: Option<String>,
+    new_uri: Option<String>,
+    new_price: Option<u16>,
+    owner: Pubkey,
+    nft_account: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(metadata_account, false),
+            AccountMeta::new_readonly(owner, true),
+            AccountMeta::new_readonly(nft_account, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+        ],
+        data: MetadataInstruction::PurchaseHero(PurchaseHeroArgs {
+            id,
+            new_name,
+            new_uri,
+            new_price,
         })
         .try_to_vec()
         .unwrap(),

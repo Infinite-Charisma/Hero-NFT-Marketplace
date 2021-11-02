@@ -16,6 +16,7 @@ use {
         account_info::AccountInfo,
         borsh::try_from_slice_unchecked,
         entrypoint::ProgramResult,
+        instruction::{AccountMeta},
         msg,
         program::{invoke, invoke_signed},
         program_error::ProgramError,
@@ -25,12 +26,14 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
-    // spl_token::{
+    spl_token::{
     //     instruction::{set_authority, AuthorityType},
-    //     state::{Account, Mint},
-    // },
+        state::{Account, Mint},
+    },
     std::convert::TryInto,
 };
+
+pub const DEFAULT_LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 
 pub fn assert_data_valid(
     data: &HeroData,
@@ -901,6 +904,103 @@ pub fn puff_out_data_fields(metadata: &mut HeroData) {
         array_of_zeroes.push(0u8);
     }
     metadata.uri = metadata.uri.clone() + std::str::from_utf8(&array_of_zeroes).unwrap();
+}
+
+pub struct PurchaseHeroLogicArgs<'a> {
+    pub metadata_account_info: &'a AccountInfo<'a>,
+    pub payer_account_info: &'a AccountInfo<'a>,
+    pub nft_account_info: &'a AccountInfo<'a>,
+    pub system_account_info: &'a AccountInfo<'a>,
+    pub rent_info: &'a AccountInfo<'a>,
+}
+
+/// Create a new account instruction
+pub fn process_purchase_hero_logic(
+    program_id: &Pubkey,
+    accounts: PurchaseHeroLogicArgs,
+    id: u8,
+    new_name: Option<String>,
+    new_uri: Option<String>,
+    price: Option<u16>,
+) -> ProgramResult {
+    let PurchaseHeroLogicArgs {
+        metadata_account_info,
+        payer_account_info,
+        nft_account_info,
+        system_account_info,
+        rent_info,
+    } = accounts;
+
+    let metadata_seeds = &[
+        PREFIX.as_bytes(),
+        program_id.as_ref(),
+        &[id],
+    ];
+    let (metadata_key, metadata_bump_seed) =
+        Pubkey::find_program_address(metadata_seeds, program_id);
+    let metadata_authority_signer_seeds = &[
+        PREFIX.as_bytes(),
+        program_id.as_ref(),
+        // mint_info.key.as_ref(),
+        &[id],
+        &[metadata_bump_seed],
+    ];
+
+    if *metadata_account_info.key != metadata_key {
+        return Err(MetadataError::InvalidMetadataKey.into());
+    }
+        
+    let mut metadata = HeroData::from_account_info(metadata_account_info)?;
+    if *nft_account_info.key != metadata.owner_nft_address {
+        return Err(MetadataError::InvalidMetadataKey.into());
+    }
+    
+    let token_account: Account = assert_initialized(&nft_account_info)?;
+    msg!("---> Hero Onwer address: {}", token_account.owner);
+
+    let cost = (metadata.listed_price as f64 * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u64;
+    msg!("--> Transfer {} lamports to the new account", cost);
+    invoke(
+        &system_instruction::transfer(&payer_account_info.key, &token_account.owner, cost),
+        &[
+            payer_account_info.clone(),
+            nft_account_info.clone(),
+            system_account_info.clone(),
+        ],
+    )?;
+    // if token_account.owner != *owner_account_info.key {
+    //     return Err(MetadataError::OwnerMismatch.into());
+    // }
+    
+    // assert_data_valid(
+    //     &data,
+    //     // update_authority_info.key,
+    //     &metadata,
+    //     // allow_direct_creator_writes,
+    //     // update_authority_info.is_signer,
+    // )?;
+    
+    // metadata.id = data.id;
+    // metadata.name = data.name;
+    // metadata.uri = data.uri;
+    // metadata.last_price = data.last_price;
+    // metadata.listed_price = data.listed_price;
+    // metadata.owner_nft_address = data.owner_nft_address;
+
+    // puff_out_data_fields(&mut metadata);
+
+    // let edition_seeds = &[
+    //     PREFIX.as_bytes(),
+    //     program_id.as_ref(),
+    //     metadata.mint.as_ref(),
+    //     EDITION.as_bytes(),
+    // ];
+    // let (_, edition_bump_seed) = Pubkey::find_program_address(edition_seeds, program_id);
+    // metadata.edition_nonce = Some(edition_bump_seed);
+
+    // metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
+    // msg!("--> metadata saved");
+    Ok(())
 }
 
 // pub struct MintNewEditionFromMasterEditionViaTokenLogicArgs<'a> {
