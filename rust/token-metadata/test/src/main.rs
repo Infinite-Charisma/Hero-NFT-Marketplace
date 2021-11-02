@@ -706,19 +706,26 @@ fn purchase_hero_call(
         Some(_val) => Some(app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap()),
         None => None,
     };
-    let name = app_matches.value_of("name").unwrap().to_owned();
-    let uri = app_matches.value_of("uri").unwrap().to_owned();
+    let uri = match app_matches.value_of("uri") {
+        Some(val) => Some(val.to_owned()),
+        None => None,
+    };
+
+    let name = match app_matches.value_of("name") {
+        Some(val) => Some(val.to_owned()),
+        None => None,
+    };
     
     println!("--->\n Id: {},", id);
     if listed_price != None {
         println!("   Price: {}", listed_price.unwrap());
     };
-    if !name.is_empty() {
-        println!("   Name: {}", name);
-    }
-    if !uri.is_empty() {
-        println!("   Uri: {}", uri);
-    }
+    // if name != None {
+    //     println!("   Name: {}", name);
+    // }
+    // if uri != None {
+    //     println!("   Uri: {}", uri);
+    // }
     
     let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &program_key);
@@ -734,8 +741,8 @@ fn purchase_hero_call(
         program_key,
         metadata_key,
         id,
-        Some(name),
-        Some(uri),
+        name,
+        uri,
         listed_price,
         payer.pubkey(),
         metadata.owner_nft_address,
