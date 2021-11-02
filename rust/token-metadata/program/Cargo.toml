@@ -1,5 +1,5 @@
 [package]
-name = "metaplex-token-metadata"
+name = "hero-token-metadata"
 version = "0.0.1"
 description = "Metaplex Metadata"
 authors = ["Metaplex Maintainers <maintainers@metaplex.com>"]
