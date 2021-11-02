@@ -26,9 +26,9 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
-    metaplex_token_metadata::{
-        instruction::{create_master_edition, create_metadata_accounts, update_metadata_accounts},
-    },
+    // metaplex_token_metadata::{
+    //     instruction::{create_master_edition, create_metadata_accounts, update_metadata_accounts},
+    // },
     spl_token::{
     //     instruction::{set_authority, AuthorityType},
         state::{Account, Mint},
