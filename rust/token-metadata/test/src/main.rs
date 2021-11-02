@@ -873,7 +873,7 @@ fn main() {
                     Arg::with_name("uri")
                         .long("new_uri")
                         .value_name("URI")
-                        .required(true)
+                        .takes_value(true)
                         .help("URI for the Hero"),
                 )
         //     SubCommand::with_name("puff_unpuffed_metadata")
