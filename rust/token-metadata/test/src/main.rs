@@ -734,6 +734,22 @@ fn purchase_hero_call(
     let account = client.get_account(&metadata_key).unwrap();
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: name-{}, price-{}, owner_nft_account-{}", metadata.name, metadata.listed_price, metadata.owner_nft_address);
+    
+    let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
+    // let mut lamports = 0;
+    // let account_info = AccountInfo::new(
+    //     &key,
+    //     false,
+    //     false,
+    //     &mut lamports,
+    //     &mut res_data.data,
+    //     &res_data.owner,
+    //     false,
+    //     0,
+    // );
+    // let owner_account = client.get_account(&metadata.owner_nft_address).unwrap();
+    // let owner_data: Account = try_from_slice_unchecked(&owner_account.data).unwrap();
+    println!("---> Retrived Owner Data: mint-{}, owner-{}", res_data.owner, res_data.owner);
 
     let mut instructions = vec![];
 
@@ -754,11 +770,11 @@ fn purchase_hero_call(
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
     let signers = vec![&payer];
     transaction.sign(&signers, recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
+    // client.send_and_confirm_transaction(&transaction).unwrap();
 
-    let account = client.get_account(&metadata_key).unwrap();
-    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
-    println!("---> Updated Hero Data: name-{} new_price-{}", metadata.name, metadata.listed_price);
+    // let account = client.get_account(&metadata_key).unwrap();
+    // let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    // println!("---> Updated Hero Data: name-{} new_price-{}", metadata.name, metadata.listed_price);
     (metadata, metadata_key)
 }
 
