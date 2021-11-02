@@ -731,9 +731,9 @@ fn purchase_hero_call(
         program_key,
         metadata_key,
         id,
-        name,
-        uri,
-        listed_price,
+        Some(name),
+        Some(uri),
+        Some(listed_price),
         payer.pubkey(),
         metadata.owner_nft_address,
     );
