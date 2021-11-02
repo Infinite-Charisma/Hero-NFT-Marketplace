@@ -2,7 +2,7 @@
 
 use {
     clap::{crate_description, crate_name, crate_version, App, Arg, ArgMatches, SubCommand},
-    metaplex_token_metadata::{
+    hero_token_metadata::{
         instruction::{
             create_metadata_accounts,
             update_hero_price,
