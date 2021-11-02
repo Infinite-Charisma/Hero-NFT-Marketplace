@@ -768,7 +768,7 @@ fn purchase_hero_call(
 
     let holders = client.get_program_accounts_with_config(&spl_token::id(), config).unwrap();
 
-    println!("holder {}", holders[0].0.to_string());
+    println!("holder {} - {}", holders.len(), metadata.owner_nft_address.to_string());
 
     //let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
     // let mut lamports = 0;
