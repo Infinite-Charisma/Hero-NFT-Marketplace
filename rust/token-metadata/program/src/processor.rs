@@ -113,7 +113,7 @@ pub fn process_purchase_hero<'a>(
     price: Option<u16>,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
-    let metadata_account_info = next_account_info(account_info_iter)?;
+    let herodata_account_info = next_account_info(account_info_iter)?;
     let payer_account_info = next_account_info(account_info_iter)?;
     let nft_account_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
@@ -122,7 +122,7 @@ pub fn process_purchase_hero<'a>(
     process_purchase_hero_logic(
         &program_id,
         PurchaseHeroLogicArgs {
-            metadata_account_info,
+            herodata_account_info,
             payer_account_info,
             nft_account_info,
             system_account_info,

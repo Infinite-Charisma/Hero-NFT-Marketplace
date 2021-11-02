@@ -17,21 +17,32 @@ use {
         input_parsers::pubkey_of,
         input_validators::{is_url, is_valid_pubkey, is_valid_signer},
     },
-    solana_client::rpc_client::RpcClient,
+    solana_client::{
+        rpc_client::RpcClient,
+        rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
+        rpc_filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
+    },
+
     solana_program::{
         account_info::AccountInfo, borsh::try_from_slice_unchecked, program_pack::Pack,
     },
     solana_sdk::{
         pubkey::Pubkey,
         signature::{read_keypair_file, Keypair, Signer},
+        commitment_config::{CommitmentConfig, CommitmentLevel},
         system_instruction::create_account,
         transaction::Transaction,
     },
+    
     spl_token::{
         instruction::{initialize_account, initialize_mint, mint_to},
-        state::{Account, Mint},
+        state::{Account as TokenAccount, Mint},
     },
     // std::str::FromStr,
+};
+use solana_account_decoder::{
+    parse_account_data::{parse_account_data, AccountAdditionalData, ParsedAccount},
+    UiAccountEncoding,
 };
 
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -735,7 +746,31 @@ fn purchase_hero_call(
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: name-{}, price-{}, owner_nft_account-{}", metadata.name, metadata.listed_price, metadata.owner_nft_address);
     
-    let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
+    let filter1 = RpcFilterType::Memcmp(Memcmp {
+        offset: 0,
+        bytes: MemcmpEncodedBytes::Binary(metadata.owner_nft_address),
+        encoding: None,
+    });
+    let filter2 = RpcFilterType::DataSize(165);
+    let account_config = RpcAccountInfoConfig {
+        encoding: Some(UiAccountEncoding::Base64),
+        data_slice: None,
+        commitment: Some(CommitmentConfig {
+            commitment: CommitmentLevel::Confirmed,
+        }),
+    };
+
+    let config = RpcProgramAccountsConfig {
+        filters: Some(vec![filter1, filter2]),
+        account_config,
+        with_context: None,
+    };
+
+    let holders = client.get_program_accounts_with_config(&TOKEN_PROGRAM_ID, config)?;
+
+    println!("holder {}", holders[0]);
+
+    //let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
     // let mut lamports = 0;
     // let account_info = AccountInfo::new(
     //     &key,
