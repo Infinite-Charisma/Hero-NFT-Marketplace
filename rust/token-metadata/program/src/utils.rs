@@ -930,6 +930,7 @@ pub fn process_purchase_hero_logic(
         herodata_account_info,
         payer_account_info,
         nft_account_info,
+        // purchaser_nft_mint_info,
         system_account_info,
         rent_info,
     } = accounts;
@@ -939,6 +940,9 @@ pub fn process_purchase_hero_logic(
         program_id.as_ref(),
         &[id],
     ];
+    // if payer_account_info.data_is_empty() {
+        
+    // }
     let (herodata_key, herodata_bump_seed) =
         Pubkey::find_program_address(herodata_seeds, program_id);
     let herodata_authority_signer_seeds = &[

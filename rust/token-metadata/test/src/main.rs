@@ -770,22 +770,6 @@ fn purchase_hero_call(
 
     println!("holder {}", holders[0].0.to_string());
 
-    //let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
-    // let mut lamports = 0;
-    // let account_info = AccountInfo::new(
-    //     &key,
-    //     false,
-    //     false,
-    //     &mut lamports,
-    //     &mut res_data.data,
-    //     &res_data.owner,
-    //     false,
-    //     0,
-    // );
-    // let owner_account = client.get_account(&metadata.owner_nft_address).unwrap();
-    // let owner_data: Account = try_from_slice_unchecked(&owner_account.data).unwrap();
-    // println!("---> Retrived Owner Data: mint-{}, owner-{}", res_data.owner, res_data.owner);
-
     let mut instructions = vec![];
 
     let new_metadata_instruction = purchase_hero(
