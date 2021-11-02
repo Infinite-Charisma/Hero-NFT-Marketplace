@@ -1172,6 +1172,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "hero-token-metadata"
+version = "0.0.1"
+dependencies = [
+ "arrayref",
+ "borsh",
+ "metaplex-token-metadata",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "solana-program-test",
+ "solana-sdk",
+ "spl-token",
+ "thiserror",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1573,22 +1589,6 @@ dependencies = [
 [[package]]
 name = "metaplex-token-metadata"
 version = "0.0.1"
-dependencies = [
- "arrayref",
- "borsh",
- "metaplex-token-metadata 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-derive",
- "num-traits",
- "solana-program",
- "solana-program-test",
- "solana-sdk",
- "spl-token",
- "thiserror",
-]
-
-[[package]]
-name = "metaplex-token-metadata"
-version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abcc939f0afdc6db054b9998a1292d0a016244b382462e61cfc7c570624982cb"
 dependencies = [
@@ -1609,7 +1609,7 @@ dependencies = [
  "bincode",
  "borsh",
  "clap",
- "metaplex-token-metadata 0.0.1",
+ "hero-token-metadata",
  "solana-account-decoder",
  "solana-clap-utils",
  "solana-cli-config",
