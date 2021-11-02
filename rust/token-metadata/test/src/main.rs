@@ -702,13 +702,16 @@ fn purchase_hero_call(
     println!("--->Program_id: {}\n", program_key);
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
-    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
+    let listed_price = match app_matches.value_of("listed_price") {
+        Some(_val) => Some(app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap()),
+        None => None,
+    };
     let name = app_matches.value_of("name").unwrap().to_owned();
     let uri = app_matches.value_of("uri").unwrap().to_owned();
     
     println!("--->\n Id: {},", id);
-    if app_matches.value_of("listed_price") != None {
-        println!("   Price: {}", listed_price);
+    if listed_price != None {
+        println!("   Price: {}", listed_price.unwrap());
     };
     if !name.is_empty() {
         println!("   Name: {}", name);
