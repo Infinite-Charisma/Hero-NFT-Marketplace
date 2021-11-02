@@ -707,13 +707,13 @@ fn purchase_hero_call(
     let uri = app_matches.value_of("uri").unwrap().to_owned();
     
     println!("--->\n Id: {},", id);
-    if listed_price != None.unwrap() {
+    if Some(listed_price) != None {
         println!("   Price: {}", listed_price);
     }
-    if name != None.unwrap() {
+    if !name.is_empty() {
         println!("   Name: {}", name);
     }
-    if uri != None.unwrap() {
+    if !uri.is_empty() {
         println!("   Uri: {}", uri);
     }
     
