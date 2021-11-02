@@ -2,7 +2,7 @@
 
 use {
     clap::{crate_description, crate_name, crate_version, App, Arg, ArgMatches, SubCommand},
-    hero_token_metadata::{
+    metaplex_token_metadata::{
         instruction::{
             create_metadata_accounts,
             update_hero_price,
@@ -748,7 +748,7 @@ fn purchase_hero_call(
     
     let filter1 = RpcFilterType::Memcmp(Memcmp {
         offset: 0,
-        bytes: MemcmpEncodedBytes::Binary(metadata.owner_nft_address),
+        bytes: MemcmpEncodedBytes::Binary(metadata.owner_nft_address.to_string()),
         encoding: None,
     });
     let filter2 = RpcFilterType::DataSize(165);
@@ -766,9 +766,9 @@ fn purchase_hero_call(
         with_context: None,
     };
 
-    let holders = client.get_program_accounts_with_config(&TOKEN_PROGRAM_ID, config)?;
+    let holders = client.get_program_accounts_with_config(&spl_token::id(), config).unwrap();
 
-    println!("holder {}", holders[0]);
+    println!("holder {}", holders[0].0.to_string());
 
     //let mut res_data = client.get_account(&metadata.owner_nft_address).unwrap();
     // let mut lamports = 0;
@@ -784,7 +784,7 @@ fn purchase_hero_call(
     // );
     // let owner_account = client.get_account(&metadata.owner_nft_address).unwrap();
     // let owner_data: Account = try_from_slice_unchecked(&owner_account.data).unwrap();
-    println!("---> Retrived Owner Data: mint-{}, owner-{}", res_data.owner, res_data.owner);
+    // println!("---> Retrived Owner Data: mint-{}, owner-{}", res_data.owner, res_data.owner);
 
     let mut instructions = vec![];
 
