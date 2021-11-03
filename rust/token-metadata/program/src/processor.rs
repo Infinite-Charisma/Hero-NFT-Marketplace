@@ -109,7 +109,7 @@ pub fn process_purchase_hero<'a>(
     id: u8,
     new_name: Option<String>,
     new_uri: Option<String>,
-    price: Option<u16>,
+    price: Option<u64>,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let herodata_account_info = next_account_info(account_info_iter)?;
@@ -143,7 +143,7 @@ pub fn process_update_hero_price(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
     hero_id: u8,
-    new_price: u16,
+    new_price: u64,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let metadata_account_info = next_account_info(account_info_iter)?;

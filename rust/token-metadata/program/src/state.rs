@@ -28,8 +28,8 @@ pub const MAX_DATA_SIZE: usize =
     + MAX_NAME_LENGTH
     + 4
     + MAX_URI_LENGTH
-    + 2
-    + 2
+    + 8
+    + 8
     + 32;
 // pub const MAX_DATA_SIZE: usize = 4
 //     + MAX_NAME_LENGTH
@@ -75,9 +75,9 @@ pub struct HeroData {
     /// URI pointing to On-chain or CDN token image
     pub uri: String,
     /// Historical price in last sales (0-10000)
-    pub last_price: u16,
+    pub last_price: u64,
     /// Published price for new sales (0-10000)
-    pub listed_price: u16,
+    pub listed_price: u64,
     /// Address of owner NFT
     pub owner_nft_address: Pubkey,
 }

@@ -39,7 +39,7 @@ pub struct CreateMetadataAccountArgs {
 pub struct UpdateHeroPriceArgs {
     /// Update price of Hero from Id for it's owner.
     pub id: u8,
-    pub price: u16,
+    pub price: u64,
 }
 
 #[repr(C)]
@@ -48,7 +48,7 @@ pub struct PurchaseHeroArgs {
     pub id: u8,
     pub new_name: Option<String>,
     pub new_uri: Option<String>,
-    pub new_price: Option<u16>,
+    pub new_price: Option<u64>,
 }
 
 /// Instructions supported by the Metadata program.
@@ -285,8 +285,8 @@ pub fn create_metadata_accounts(
     name: String,
     // symbol: String,
     uri: String,
-    last_price: u16,
-    listed_price: u16,
+    last_price: u64,
+    listed_price: u64,
     owner_nft_address: Pubkey,
     // creators: Option<Vec<Creator>>,
     // seller_fee_basis_points: u16,
@@ -326,7 +326,7 @@ pub fn update_hero_price(
     program_id: Pubkey,
     metadata_account: Pubkey,
     id: u8,
-    new_price: u16,
+    new_price: u64,
     owner: Pubkey,
     owner_nft_token_account: Pubkey,
 ) -> Instruction {
@@ -353,7 +353,7 @@ pub fn purchase_hero(
     id: u8,
     new_name: Option<String>,
     new_uri: Option<String>,
-    new_price: Option<u16>,
+    new_price: Option<u64>,
     payer: Pubkey,
     nft_owner_address: Pubkey,
     nft_token_account: Pubkey,

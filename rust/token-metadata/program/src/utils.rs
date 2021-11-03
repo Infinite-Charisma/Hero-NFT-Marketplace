@@ -923,7 +923,7 @@ pub fn process_purchase_hero_logic(
     id: u8,
     new_name: Option<String>,
     new_uri: Option<String>,
-    price: Option<u16>,
+    price: Option<u64>,
 ) -> ProgramResult {
     let PurchaseHeroLogicArgs {
         herodata_account_info,
@@ -945,13 +945,13 @@ pub fn process_purchase_hero_logic(
     // }
     let (herodata_key, herodata_bump_seed) =
         Pubkey::find_program_address(herodata_seeds, program_id);
-    let herodata_authority_signer_seeds = &[
-        PREFIX.as_bytes(),
-        program_id.as_ref(),
-        // mint_info.key.as_ref(),
-        &[id],
-        &[herodata_bump_seed],
-    ];
+    // let herodata_authority_signer_seeds = &[
+    //     PREFIX.as_bytes(),
+    //     program_id.as_ref(),
+    //     // mint_info.key.as_ref(),
+    //     &[id],
+    //     &[herodata_bump_seed],
+    // ];
 
     if herodata_account_info.key != &herodata_key {
         return Err(MetadataError::InvalidMetadataKey.into());
