@@ -61,7 +61,6 @@ pub fn process_instruction<'a>(
                 accounts,
                 args.id,
                 args.price,
-                args.owner,
             )
         }
         MetadataInstruction::PurchaseHero(args) => {
@@ -115,7 +114,9 @@ pub fn process_purchase_hero<'a>(
     let account_info_iter = &mut accounts.iter();
     let herodata_account_info = next_account_info(account_info_iter)?;
     let payer_account_info = next_account_info(account_info_iter)?;
+    let nft_owner_address_info = next_account_info(account_info_iter)?;
     let nft_account_info = next_account_info(account_info_iter)?;
+    let new_token_mint_address = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
 
@@ -124,7 +125,9 @@ pub fn process_purchase_hero<'a>(
         PurchaseHeroLogicArgs {
             herodata_account_info,
             payer_account_info,
+            nft_owner_address_info,
             nft_account_info,
+            new_token_mint_address,
             system_account_info,
             rent_info,
         },
@@ -141,12 +144,11 @@ pub fn process_update_hero_price(
     accounts: &[AccountInfo],
     hero_id: u8,
     new_price: u16,
-    hero_owner: Pubkey,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let metadata_account_info = next_account_info(account_info_iter)?;
     let owner_account_info = next_account_info(account_info_iter)?;
-    let owner_nft_account_info = next_account_info(account_info_iter)?;
+    let owner_nft_token_account_info = next_account_info(account_info_iter)?;
     let metadata_seeds = &[
         PREFIX.as_bytes(),
         program_id.as_ref(),
@@ -158,21 +160,21 @@ pub fn process_update_hero_price(
         msg!("----> Error: mismatch with hero id and parsed hero account");
         return Err(MetadataError::InvalidMetadataKey.into());
     }
-    if *owner_account_info.key != hero_owner {
-        msg!("----> Error: hero_owner must be a singer");
-        return Err(MetadataError::InvalidMetadataKey.into());
-    }
 
     assert_owned_by(metadata_account_info, program_id)?;
-    let mut metadata = HeroData::from_account_info(metadata_account_info)?;
 
-    assert_owned_by(owner_nft_account_info, &spl_token::id())?;
-    if metadata.owner_nft_address !=  *owner_nft_account_info.key {
-        return Err(MetadataError::InvalidOwner.into());
-    }
-    let token_account: Account = assert_initialized(&owner_nft_account_info)?;
-    if token_account.owner != *owner_account_info.key {
+    let mut metadata = HeroData::from_account_info(metadata_account_info)?;
+    let token_account: Account = assert_initialized(&owner_nft_token_account_info)?;
+    msg!("--> retrived: {}, generated: {}", metadata.owner_nft_address, token_account.mint);
+
+    assert_owned_by(owner_nft_token_account_info, &spl_token::id())?;
+    if metadata.owner_nft_address !=  token_account.mint {
         return Err(MetadataError::OwnerMismatch.into());
+    }
+    msg!("---> Hero Onwer address: {}, Retrieved: {}", owner_account_info.key, token_account.owner);
+    let token_account: Account = assert_initialized(&owner_nft_token_account_info)?;
+    if token_account.owner != *owner_account_info.key {
+        return Err(MetadataError::InvalidOwner.into());
     }
 
     metadata.listed_price = new_price;

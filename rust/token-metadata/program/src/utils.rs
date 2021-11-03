@@ -16,7 +16,6 @@ use {
         account_info::AccountInfo,
         borsh::try_from_slice_unchecked,
         entrypoint::ProgramResult,
-        instruction::{AccountMeta},
         msg,
         program::{invoke, invoke_signed},
         program_error::ProgramError,
@@ -31,7 +30,7 @@ use {
     // },
     spl_token::{
     //     instruction::{set_authority, AuthorityType},
-        state::{Account, Mint},
+        state::{Account},
     },
     std::convert::TryInto,
 };
@@ -912,7 +911,9 @@ pub fn puff_out_data_fields(metadata: &mut HeroData) {
 pub struct PurchaseHeroLogicArgs<'a> {
     pub herodata_account_info: &'a AccountInfo<'a>,
     pub payer_account_info: &'a AccountInfo<'a>,
+    pub nft_owner_address_info: &'a AccountInfo<'a>,
     pub nft_account_info: &'a AccountInfo<'a>,
+    pub new_token_mint_address: &'a AccountInfo<'a>,
     pub system_account_info: &'a AccountInfo<'a>,
     pub rent_info: &'a AccountInfo<'a>,
 }
@@ -929,8 +930,9 @@ pub fn process_purchase_hero_logic(
     let PurchaseHeroLogicArgs {
         herodata_account_info,
         payer_account_info,
+        nft_owner_address_info,
         nft_account_info,
-        // purchaser_nft_mint_info,
+        new_token_mint_address,
         system_account_info,
         rent_info,
     } = accounts;
@@ -953,122 +955,32 @@ pub fn process_purchase_hero_logic(
         &[herodata_bump_seed],
     ];
 
-    if *herodata_account_info.key != herodata_key {
-        return Err(MetadataError::InvalidMetadataKey.into());
-    }
-        
-    let mut herodata = HeroData::from_account_info(herodata_account_info)?;
-    if *nft_account_info.key != herodata.owner_nft_address {
+    if herodata_account_info.key != &herodata_key {
         return Err(MetadataError::InvalidMetadataKey.into());
     }
     
+    let mut herodata = HeroData::from_account_info(herodata_account_info)?;
     let token_account: Account = assert_initialized(&nft_account_info)?;
-    msg!("---> Hero Onwer address: {}", token_account.owner);
+    msg!("--> received: {}, generated: {}", nft_owner_address_info.key, token_account.owner);
+    if nft_owner_address_info.key != &token_account.owner {
+        return Err(MetadataError::OwnerMismatch.into());
+    }
+    
+    msg!("---> Hero Onwer address: {}, Retrieved: {}", token_account.mint, herodata.owner_nft_address);
+    if herodata.owner_nft_address != token_account.mint {
+        return Err(MetadataError::InvalidOwner.into());
+    }
 
     let cost = (herodata.listed_price as f64 * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u64;
     msg!("--> Transfer {} lamports to the new account", cost);
-    // invoke(
-    //     &system_instruction::transfer(&payer_account_info.key, &token_account.owner, cost),
-    //     &[
-    //         payer_account_info.clone(),
-    //         nft_account_info.clone(),
-    //         system_account_info.clone(),
-    //     ],
-    // )?;
-
-    // if token_account.owner != *owner_account_info.key {
-    //     return Err(MetadataError::OwnerMismatch.into());
-    // }
-
-    // let mut creators: Vec<metaplex_token_metadata::state::Creator> =
-    //     vec![metaplex_token_metadata::state::Creator {
-    //         address: *payer_account_info.clone().key,
-    //         verified: true,
-    //         share: 100,
-    //     }];
-
-    // let metadata_infos = vec![
-    //     metadata.clone(),
-    //     mint.clone(),
-    //     mint_authority.clone(),
-    //     payer.clone(),
-    //     token_metadata_program.clone(),
-    //     token_program.clone(),
-    //     system_program.clone(),
-    //     rent.to_account_info().clone(),
-    //     candy_machine.to_account_info().clone(),
-    // ];
-
-    // let master_edition_infos = vec![
-    //     master_edition.clone(),
-    //     mint.clone(),
-    //     mint_authority.clone(),
-    //     payer.clone(),
-    //     metadata.clone(),
-    //     token_metadata_program.clone(),
-    //     token_program.clone(),
-    //     system_program.clone(),
-    //     rent.to_account_info().clone(),
-    //     candy_machine.to_account_info().clone(),
-    // ];
-
-    // invoke_signed(
-    //     &create_metadata_accounts(
-    //         *token_metadata_program.key,
-    //         *metadata.key,
-    //         *mint.key,
-    //         *mint_authority.key,
-    //         *payer.key,
-    //         candy_machine.key(),
-    //         config_line.name,
-    //         config.data.symbol.clone(),
-    //         config_line.uri,
-    //         Some(creators),
-    //         config.data.seller_fee_basis_points,
-    //         true,
-    //         config.data.is_mutable,
-    //     ),
-    //     metadata_infos.as_slice(),
-    //     &[herodata_authority_signer_seeds],
-    // )?;
-
-    // invoke_signed(
-    //     &create_master_edition(
-    //         *token_metadata_program.key,
-    //         *master_edition.key,
-    //         *mint.key,
-    //         candy_machine.key(),
-    //         *mint_authority.key,
-    //         *metadata.key,
-    //         *payer.key,
-    //         Some(config.data.max_supply),
-    //     ),
-    //     master_edition_infos.as_slice(),
-    //     &[herodata_authority_signer_seeds],
-    // )?;
-
-    // let mut new_update_authority = Some(metadata_key);
-
-    // if !config.data.retain_authority {
-    //     new_update_authority = Some(update_authority.key());
-    // }
-
-    // invoke_signed(
-    //     &update_metadata_accounts(
-    //         *token_metadata_program.key,
-    //         *metadata.key,
-    //         candy_machine.key(),
-    //         new_update_authority,
-    //         None,
-    //         Some(true),
-    //     ),
-    //     &[
-    //         token_metadata_program.clone(),
-    //         metadata.clone(),
-    //         candy_machine.to_account_info().clone(),
-    //     ],
-    //     &[herodata_authority_signer_seeds],
-    // )?;
+    invoke(
+        &system_instruction::transfer(&payer_account_info.key, &nft_owner_address_info.key, cost),
+        &[
+            payer_account_info.clone(),
+            nft_owner_address_info.clone(),
+            system_account_info.clone(),
+        ],
+    )?;
 
     // assert_data_valid(
     //     &data,
@@ -1079,13 +991,34 @@ pub fn process_purchase_hero_logic(
     // )?;
     
     // metadata.id = data.id;
-    // metadata.name = new_name.ok_or(MetadataError::DataTypeMismatch)?;
-    // metadata.uri = new_uri.ok_or(MetadataError::DataTypeMismatch)?;
-    // metadata.last_price = metadata.listed_price;
-    // metadata.listed_price = price.ok_or(MetadataError::DataTypeMismatch)?;
-    // metadata.owner_nft_address = data.owner_nft_address;
+    herodata.name = match new_name {
+        Some(new_name) => {
+            new_name
+        }
+        None => {
+            herodata.name
+        }
+    };
+    herodata.uri = match new_uri {
+        Some(new_uri) => {
+            new_uri
+        }
+        None => {
+            herodata.uri
+        }
+    };
+    herodata.last_price = herodata.listed_price;
+    herodata.listed_price = match price {
+        Some(price) => {
+            price
+        }
+        None => {
+            herodata.listed_price
+        }
+    };
+    herodata.owner_nft_address = *new_token_mint_address.key;
 
-    // puff_out_data_fields(&mut metadata);
+    puff_out_data_fields(&mut herodata);
 
     // let edition_seeds = &[
     //     PREFIX.as_bytes(),
@@ -1096,8 +1029,8 @@ pub fn process_purchase_hero_logic(
     // let (_, edition_bump_seed) = Pubkey::find_program_address(edition_seeds, program_id);
     // metadata.edition_nonce = Some(edition_bump_seed);
 
-    // metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
-    // msg!("--> metadata saved");
+    herodata.serialize(&mut *herodata_account_info.data.borrow_mut())?;
+    msg!("--> metadata replaced");
     Ok(())
 }
 

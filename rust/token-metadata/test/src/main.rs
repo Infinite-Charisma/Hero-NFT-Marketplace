@@ -38,14 +38,14 @@ use {
         instruction::{initialize_account, initialize_mint, mint_to},
         state::{Account as TokenAccount, Mint},
     },
-    // std::str::FromStr,
+    std::str::FromStr,
 };
 use solana_account_decoder::{
     parse_account_data::{parse_account_data, AccountAdditionalData, ParsedAccount},
     UiAccountEncoding,
 };
 
-const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
+// const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 // const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 // fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 //     let metadata_accounts = client
@@ -493,7 +493,7 @@ const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 //     let program_key = metaplex_token_metadata::id();
 //     println!("--> {}", program_key);
     
-//     let metadata_program_key = Pubkey::from_str(TOKEN_METADATA_PROGRAM_PUBKEY).unwrap();
+    // let metadata_program_key = Pubkey::from_str(TOKEN_METADATA_PROGRAM_PUBKEY).unwrap();
 //     let mint_key = pubkey_of(app_matches, "mint").unwrap();
 //     let metadata_seeds = &[PREFIX.as_bytes(), &metadata_program_key.as_ref(), mint_key.as_ref()];
 //     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &metadata_program_key);
@@ -627,8 +627,7 @@ fn update_metadata_account_call(
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
     let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
-    let owner_key = pubkey_of(app_matches, "owner").unwrap();
-    
+
     println!("--->\n Id: {},\n Price: {}",id, listed_price);
     
     let metadata_seeds = &[PREFIX.as_bytes(), &program_key.as_ref(),&[id]];
@@ -639,6 +638,50 @@ fn update_metadata_account_call(
     let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
     println!("---> Retrived Hero Data: name-{}, price-{}", metadata.name, metadata.listed_price);
 
+    let filter1 = RpcFilterType::Memcmp(Memcmp {
+        offset: 0,
+        bytes: MemcmpEncodedBytes::Binary(metadata.owner_nft_address.to_string()),
+        encoding: None,
+    });
+    let filter2 = RpcFilterType::DataSize(165);
+    let account_config = RpcAccountInfoConfig {
+        encoding: Some(UiAccountEncoding::Base64),
+        data_slice: None,
+        commitment: Some(CommitmentConfig {
+            commitment: CommitmentLevel::Confirmed,
+        }),
+    };
+
+    let config = RpcProgramAccountsConfig {
+        filters: Some(vec![filter1, filter2]),
+        account_config,
+        with_context: None,
+    };
+
+    let mut nft_owner_key: String = String::new();
+    let mut nft_owner_account: Pubkey = Pubkey::new_unique();
+    let holders = client.get_program_accounts_with_config(&spl_token::id(), config).unwrap();
+    println!("---> Captured holder count: {}", holders.len());
+    for (holder_address, holder_account) in holders {
+        let data = parse_account_data(
+            &metadata.owner_nft_address,
+            &spl_token::id(),
+            &holder_account.data,
+            Some(AccountAdditionalData {
+                spl_token_decimals: Some(0),
+            }),
+        ).unwrap();
+        let amount = parse_token_amount(&data).unwrap();
+
+        if amount == 1 {
+            let owner_wallet = parse_owner(&data).unwrap();
+            nft_owner_key = owner_wallet;
+            nft_owner_account = holder_address;
+        }
+    }
+    let owner = Pubkey::from_str(&*nft_owner_key).unwrap();
+    println!("--> holder {} - {}", owner, nft_owner_account);
+
     let mut instructions = vec![];
 
     let new_metadata_instruction = update_hero_price(
@@ -647,7 +690,7 @@ fn update_metadata_account_call(
         id,
         listed_price,
         payer.pubkey(),
-        owner_key,
+        nft_owner_account,
     );
 
     instructions.push(new_metadata_instruction);
@@ -670,38 +713,40 @@ fn get_all_heros(
     let program_key = metaplex_token_metadata::id();
     let accounts = client.get_program_accounts(&program_key).unwrap();
     println!("--> Saved program accounts: {}", accounts.len());
-    
-    // let mut nft_holders: Vec<HeroData> = Vec::new();
 
     for (pubkey, account) in accounts {
         println!("hero_account: {:?}", pubkey);
         let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
         println!("data: {:?}", metadata);
-        // let token_accounts = get_holder_token_accounts(client, metadata.mint.to_string()).unwrap();
-        // for (token_address, account) in token_accounts {
-            // let data = parse_account_data(
-            //     &metadata.mint,
-            //     &TOKEN_PROGRAM_ID,
-            //     &account.data,
-            //     Some(AccountAdditionalData {
-            //         spl_token_decimals: Some(0),
-            //     }),
-            // ).unwrap();
-            // let amount = parse_token_amount(&data).unwrap();
-
-            // // Only include current holder of the NFT.
-            // if amount == 1 {
-            //     let owner_wallet = parse_owner(&data).unwrap();
-            //     let token_address = token_address.to_string();
-            //     let holder = Holder {
-            //         owner_wallet,
-            //         token_address,
-            //         mint_account: metadata.name.to_string(),
-            //     };
-            //     nft_holders.push(holder);
-            // }
-        // }
     }
+}
+
+fn parse_token_amount(data: &ParsedAccount) -> Option<u64> {
+    let amount = data
+        .parsed
+        .get("info")
+        .ok_or("Invalid data account!").unwrap()
+        .get("tokenAmount")
+        .ok_or("Invalid token amount!").unwrap()
+        .get("amount")
+        .ok_or("Invalid token amount!").unwrap()
+        .as_str()
+        .ok_or("Invalid token amount!").unwrap()
+        .parse().unwrap();
+    Some(amount)
+}
+
+fn parse_owner(data: &ParsedAccount) -> Option<String> {
+    let owner = data
+        .parsed
+        .get("info")
+        .ok_or("Invalid owner account!").unwrap()
+        .get("owner")
+        .ok_or("Invalid owner account!").unwrap()
+        .as_str()
+        .ok_or("Invalid owner amount!").unwrap()
+        .to_string();
+    Some(owner)
 }
 
 fn purchase_hero_call(
@@ -766,9 +811,28 @@ fn purchase_hero_call(
         with_context: None,
     };
 
+    let mut nft_owner_key: String = String::new();
+    let mut nft_owner_account: Pubkey = Pubkey::new_unique();
     let holders = client.get_program_accounts_with_config(&spl_token::id(), config).unwrap();
+    for (holder_address, holder_account) in holders {
+        let data = parse_account_data(
+            &metadata.owner_nft_address,
+            &spl_token::id(),
+            &holder_account.data,
+            Some(AccountAdditionalData {
+                spl_token_decimals: Some(0),
+            }),
+        ).unwrap();
+        let amount = parse_token_amount(&data).unwrap();
 
-    println!("holder {}", holders[0].0.to_string());
+        if amount == 1 {
+            let owner_wallet = parse_owner(&data).unwrap();
+            nft_owner_key = owner_wallet;
+            nft_owner_account = holder_address;
+        }
+    }
+    let owner = Pubkey::from_str(&*nft_owner_key).unwrap();
+    println!("--> holder {} - {}", owner, nft_owner_account);
 
     let mut instructions = vec![];
 
@@ -780,6 +844,9 @@ fn purchase_hero_call(
         uri,
         listed_price,
         payer.pubkey(),
+        owner,
+        nft_owner_account,
+        // should be new mint key
         metadata.owner_nft_address,
     );
 
@@ -789,11 +856,11 @@ fn purchase_hero_call(
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
     let signers = vec![&payer];
     transaction.sign(&signers, recent_blockhash);
-    // client.send_and_confirm_transaction(&transaction).unwrap();
+    client.send_and_confirm_transaction(&transaction).unwrap();
 
-    // let account = client.get_account(&metadata_key).unwrap();
-    // let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
-    // println!("---> Updated Hero Data: name-{} new_price-{}", metadata.name, metadata.listed_price);
+    let account = client.get_account(&metadata_key).unwrap();
+    let metadata: HeroData = try_from_slice_unchecked(&account.data).unwrap();
+    println!("---> Updated Hero Data: name-{} new_owner-{}", metadata.name, metadata.owner_nft_address);
     (metadata, metadata_key)
 }
 
@@ -878,14 +945,6 @@ fn main() {
                         .takes_value(true)
                         .required(true)
                         .help("Published price for new sales (0-10000)"),
-                )
-                .arg(
-                    Arg::with_name("owner")
-                        .long("owner")
-                        .value_name("OWNER")
-                        .takes_value(true)
-                        .required(true)
-                        .help("Pubkey for an owner NFT"),
                 )
         ).subcommand(
             SubCommand::with_name("show")

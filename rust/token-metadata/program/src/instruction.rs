@@ -40,7 +40,6 @@ pub struct UpdateHeroPriceArgs {
     /// Update price of Hero from Id for it's owner.
     pub id: u8,
     pub price: u16,
-    pub owner: Pubkey,
 }
 
 #[repr(C)]
@@ -329,19 +328,18 @@ pub fn update_hero_price(
     id: u8,
     new_price: u16,
     owner: Pubkey,
-    owner_nft_address: Pubkey,
+    owner_nft_token_account: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(metadata_account, false),
             AccountMeta::new_readonly(owner, true),
-            AccountMeta::new_readonly(owner_nft_address, false),
+            AccountMeta::new_readonly(owner_nft_token_account, false),
         ],
         data: MetadataInstruction::UpdateHeroPrice(UpdateHeroPriceArgs {
             id,
             price: new_price,
-            owner,
         })
         .try_to_vec()
         .unwrap(),
@@ -356,15 +354,19 @@ pub fn purchase_hero(
     new_name: Option<String>,
     new_uri: Option<String>,
     new_price: Option<u16>,
-    owner: Pubkey,
-    nft_account: Pubkey,
+    payer: Pubkey,
+    nft_owner_address: Pubkey,
+    nft_token_account: Pubkey,
+    new_token_mint_address: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(metadata_account, false),
-            AccountMeta::new_readonly(owner, true),
-            AccountMeta::new_readonly(nft_account, false),
+            AccountMeta::new(payer, true),
+            AccountMeta::new(nft_owner_address, false),
+            AccountMeta::new_readonly(nft_token_account, false),
+            AccountMeta::new_readonly(new_token_mint_address, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
