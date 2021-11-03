@@ -560,7 +560,8 @@ fn create_metadata_account_call(
 
     let accounts = client.get_program_accounts(&program_key).unwrap();
     println!("--> Saved hero accounts: {}", accounts.len());
-    let id = accounts.len() as u8 + 1;//app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
+    let id = accounts.len() as u8 + 1;
+    // let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
     let last_price = 0 as u64;
     let listed_price = (app_matches.value_of("listed_price").unwrap().parse::<f64>().unwrap() * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u64;
     let name = app_matches.value_of("name").unwrap().to_owned();
