@@ -45,6 +45,8 @@ use solana_account_decoder::{
     UiAccountEncoding,
 };
 
+pub const DEFAULT_LAMPORTS_PER_SOL: u64 = 1_000_000_000;
+
 // const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 // const TOKEN_METADATA_PROGRAM_PUBKEY: &str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 // fn puff_unpuffed_metadata(_app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
@@ -560,7 +562,7 @@ fn create_metadata_account_call(
     println!("--> Saved hero accounts: {}", accounts.len());
     let id = accounts.len() as u8 + 1;//app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
     let last_price = 0 as u16;
-    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
+    let listed_price = (app_matches.value_of("listed_price").unwrap().parse::<f64>().unwrap() * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u16;
     let name = app_matches.value_of("name").unwrap().to_owned();
     // let symbol = app_matches.value_of("symbol").unwrap().to_owned();
     let uri = app_matches.value_of("uri").unwrap().to_owned();
@@ -626,7 +628,7 @@ fn update_metadata_account_call(
     println!("--->Program_id: {}\n", program_key);
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
-    let listed_price = app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap();
+    let listed_price = (app_matches.value_of("listed_price").unwrap().parse::<f64>().unwrap() * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u16;
 
     println!("--->\n Id: {},\n Price: {}",id, listed_price);
     
@@ -759,7 +761,7 @@ fn purchase_hero_call(
 
     let id = app_matches.value_of("id").unwrap().parse::<u8>().unwrap();
     let listed_price = match app_matches.value_of("listed_price") {
-        Some(_val) => Some(app_matches.value_of("listed_price").unwrap().parse::<u16>().unwrap()),
+        Some(_val) => Some((app_matches.value_of("listed_price").unwrap().parse::<f64>().unwrap() * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u16),
         None => None,
     };
     let uri = match app_matches.value_of("uri") {

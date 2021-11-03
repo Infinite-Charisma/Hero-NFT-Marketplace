@@ -17,7 +17,7 @@ import {
   getCandyMachineState,
   mintOneToken,
   shortenAddress,
-} from "./candy-machine";
+} from "./hero_script";
 
 import Skeleton from './logo.svg';
 import { randomBytes } from "crypto";

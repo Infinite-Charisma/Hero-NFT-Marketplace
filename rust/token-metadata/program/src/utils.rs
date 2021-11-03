@@ -35,8 +35,6 @@ use {
     std::convert::TryInto,
 };
 
-pub const DEFAULT_LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-
 pub fn assert_data_valid(
     data: &HeroData,
     // update_authority: &Pubkey,
@@ -971,10 +969,9 @@ pub fn process_purchase_hero_logic(
         return Err(MetadataError::InvalidOwner.into());
     }
 
-    let cost = (herodata.listed_price as f64 * DEFAULT_LAMPORTS_PER_SOL as f64).round() as u64;
-    msg!("--> Transfer {} lamports to the new account", cost);
+    msg!("--> Transfer {} lamports to the new account", herodata.listed_price);
     invoke(
-        &system_instruction::transfer(&payer_account_info.key, &nft_owner_address_info.key, cost),
+        &system_instruction::transfer(&payer_account_info.key, &nft_owner_address_info.key, herodata.listed_price as u64),
         &[
             payer_account_info.clone(),
             nft_owner_address_info.clone(),
