@@ -14,6 +14,125 @@ import {
 } from './constants';
 import * as anchor from '@project-serum/anchor';
 
+export function createHeroMetadataInstruction(
+  metadataAccount: PublicKey,
+  payer: PublicKey,
+  txnData: Buffer,
+  programId: PublicKey,
+) {
+  const keys = [
+    {
+      pubkey: metadataAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: payer,
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: SystemProgram.programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: SYSVAR_RENT_PUBKEY,
+      isSigner: false,
+      isWritable: false,
+    },
+  ];
+  return new TransactionInstruction({
+    programId,
+    keys,
+    data: txnData,
+  });
+}
+
+export function updateHeroMetadataInstruction(
+  metadataAccount: PublicKey,
+  payer: PublicKey,
+  tokenAccount: PublicKey,
+  txnData: Buffer,
+  programId: PublicKey,
+) {
+  const keys = [
+    {
+      pubkey: metadataAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: payer,
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: tokenAccount,
+      isSigner: false,
+      isWritable: false,
+    },
+  ];
+  return new TransactionInstruction({
+    programId,
+    keys,
+    data: txnData,
+  });
+}
+
+export function purchaseHeroInstruction(
+  metadataAccount: PublicKey,
+  payer: PublicKey,
+  tokenOwnerAddress: PublicKey,
+  tokenAccount: PublicKey,
+  newMintAccount: PublicKey,
+  txnData: Buffer,
+  programId: PublicKey,
+) {
+  const keys = [
+    {
+      pubkey: metadataAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: payer,
+      isSigner: true,
+      isWritable: true,
+    },
+    {
+      pubkey: tokenOwnerAddress,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: tokenAccount,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: newMintAccount,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: SystemProgram.programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: SYSVAR_RENT_PUBKEY,
+      isSigner: false,
+      isWritable: false,
+    },
+  ];
+  return new TransactionInstruction({
+    programId,
+    keys,
+    data: txnData,
+  });
+}
+
 export function createAssociatedTokenAccountInstruction(
   associatedTokenAddress: PublicKey,
   payer: PublicKey,

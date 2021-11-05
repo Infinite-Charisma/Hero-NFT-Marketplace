@@ -220,6 +220,22 @@ export const getMetadata = async (
   )[0];
 };
 
+export const getHeroDataKey = async (
+  id: number,
+  programId: PublicKey,
+): Promise<anchor.web3.PublicKey> => {
+  return (
+    await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from('metadata'),
+        programId.toBuffer(),
+        Buffer.from([id]),
+      ],
+      programId,
+    )
+  )[0];
+};
+
 export const getMasterEdition = async (
   mint: anchor.web3.PublicKey,
 ): Promise<anchor.web3.PublicKey> => {

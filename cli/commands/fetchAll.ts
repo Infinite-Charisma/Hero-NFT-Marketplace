@@ -1,9 +1,10 @@
 import {
   AccountInfo,
   Connection,
+  PublicKey,
 } from '@solana/web3.js';
 import * as borsh from 'borsh';
-import { AccountAndPubkey, Herodata, METADATA_SCHEMA } from '../types';
+import { AccountAndPubkey, Herodata, Metadata, METADATA_SCHEMA } from '../types';
 import log from 'loglevel';
 
 /*
@@ -26,17 +27,28 @@ export async function getAllHeros(
   log.info(`Fetched hero counts: ${result.length}`);
   let heroList = [];
   for(let hero of result) {
-    const decoded = await decodeMetadata(hero.account.data);
+    const decoded = await decodeHeroMetadata(hero.account.data);
+    let metadata = {};
+    metadata['id'] = decoded.id;
+    metadata['lastPrice'] = decoded.lastPrice.toString();
+    metadata['listedPrice'] = decoded.listedPrice.toString();
+    let name = Buffer.from(decoded.name);
+    name = name.slice(0, name.indexOf(0));
+    let uri = Buffer.from(decoded.uri);
+    uri = uri.slice(0, uri.indexOf(0));
+    metadata['name'] = name.toString();
+    metadata['uri'] = uri.toString();
+    metadata['ownerNftAddress'] = (new PublicKey(decoded.ownerNftAddress)).toBase58();
     const accountPubkey = hero.pubkey;
     heroList.push({
       pubkey: accountPubkey,
-      data: decoded,
+      data: metadata,
     });
   };
   return heroList;
 }
 
-async function getProgramAccounts(
+export async function getProgramAccounts(
   connection: Connection,
   programId: String,
   configOrCommitment?: any,
@@ -90,6 +102,10 @@ async function getProgramAccounts(
   return data;
 }
 
-async function decodeMetadata(buffer) {
+export async function decodeHeroMetadata(buffer) {
   return borsh.deserializeUnchecked(METADATA_SCHEMA, Herodata, buffer);
+}
+
+export async function decodeMetadata(buffer) {
+  return borsh.deserializeUnchecked(METADATA_SCHEMA, Metadata, buffer);
 }

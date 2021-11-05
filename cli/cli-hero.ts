@@ -6,6 +6,8 @@ import log from 'loglevel';
 import { web3 } from '@project-serum/anchor';
 
 import { createNewHero } from './commands/createHero';
+import { updateHero } from './commands/updateHero';
+import { purchaseNFT } from './commands/purchaseHero';
 import { upload } from './commands/upload';
 import { getAllHeros } from './commands/fetchAll';
 
@@ -46,6 +48,7 @@ programCommand('create_hero')
 
     const solConnection = new web3.Connection(web3.clusterApiUrl(env));
     const programId = process.env.HERO_METADATA_PROGRAM_ID;
+    log.info(`Hero program Id: ${programId.toString()}`);
     if (!programId) {
       throw new Error(`Hero Program Id is not provided in .env file`);
     }
@@ -95,9 +98,8 @@ programCommand('update_hero_price')
       throw new Error(`Hero Program Id is not provided in .env file`);
     }
     const walletKeyPair = loadWalletKey(keypair);
-    let wallet = walletKeyPair.publicKey;
     log.info(`update_hero_price: i-${id}, p-${parsedPrice}`);
-    // await mintNFT(solConnection, walletKeyPair, metadata);
+    await updateHero(solConnection, programId, walletKeyPair, id, parsedPrice);
   });
 
 programCommand('buy_hero')
@@ -114,7 +116,6 @@ programCommand('buy_hero')
       name,
       uri,
       price,
-      metadata,
     } = cmd.opts();
 
     let parsedPrice = parsePrice(price);
@@ -129,8 +130,8 @@ programCommand('buy_hero')
     }
     const walletKeyPair = loadWalletKey(keypair);
     let wallet = walletKeyPair.publicKey;
-    log.info(`buy_hero: i-${id}, n-${name}, u-${uri}, p-${parsedPrice}, m-${metadata}`);
-    // await mintNFT(solConnection, walletKeyPair);
+    log.info(`buy_hero: i-${id}, n-${name}, u-${uri}, p-${parsedPrice}`);
+    await purchaseNFT(solConnection, programId, env, walletKeyPair, id, name, uri, parsedPrice);
   });
 
 programCommand('upload_image')

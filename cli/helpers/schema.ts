@@ -61,7 +61,117 @@ export class CreateMasterEditionArgs {
   }
 }
 
+export class Herodata {
+  id: number;
+  name: string;
+  uri: string;
+  lastPrice: number;
+  listedPrice: number;
+  ownerNftAddress: Uint8Array;
+  constructor(args: {
+    id: number;
+    name: string;
+    uri: string;
+    lastPrice: number;
+    listedPrice: number;
+    ownerNftAddress: Uint8Array;
+  }) {
+      this.id = args.id;
+      this.name = args.name;
+      this.uri = args.uri;
+      this.lastPrice = args.lastPrice;
+      this.listedPrice = args.listedPrice;
+      this.ownerNftAddress = args.ownerNftAddress;
+  }
+}
+
+export class CreateHeroMetadataArgs {
+  ins_no: number;
+  data: Herodata;
+  id: number;
+  constructor(args: { data: Herodata, id: number }) {
+    this.ins_no = 0;
+    this.data = args.data;
+    this.id = args.id;
+  }
+}
+
+export class UpdateHeroMetadataArgs {
+  id: number;
+  price: BN;
+  ins_no: number;
+  constructor(args: { id: number, price: BN }) {
+    this.ins_no = 1;
+    this.id = args.id;
+    this.price = args.price;
+  }
+}
+
+export class PurchaseHeroArgs {
+  id: number;
+  new_price: BN | null;
+  new_name: string | null;
+  new_uri: string | null;
+  ins_no: number;
+  constructor(args: { id: number, price: BN | null, name: string | null, uri: string | null }) {
+    this.ins_no = 2;
+    this.id = args.id;
+    this.new_name = args.name;
+    this.new_uri = args.uri;
+    this.new_price = args.price;
+  }
+}
+
 export const METADATA_SCHEMA = new Map<any, any>([
+  [
+    CreateHeroMetadataArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['ins_no', 'u8'],
+        ['data', Herodata],
+        ['id', 'u8'],
+      ],
+    },
+  ],
+  [
+    UpdateHeroMetadataArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['ins_no', 'u8'],
+        ['id', 'u8'],
+        ['price', 'u64'],
+      ],
+    },
+  ],
+  [
+    PurchaseHeroArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['ins_no', 'u8'],
+        ['id', 'u8'],
+        ['new_name', { kind: 'option', type: 'string' }],
+        ['new_uri', { kind: 'option', type: 'string' }],
+        ['new_price', { kind: 'option', type: 'u64' }],
+      ],
+    },
+  ],
+  [
+    Herodata,
+    {
+      kind: 'struct',
+      fields: [
+        ['id', 'u8'],
+        ['name', 'string'],
+        ['uri', 'string'],
+        ['lastPrice', 'u64'],
+        ['listedPrice', 'u64'],
+        ['ownerNftAddress', [32]],
+      ],
+    },
+  ],
   [
     CreateMetadataArgs,
     {
